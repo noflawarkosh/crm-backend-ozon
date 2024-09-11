@@ -1,0 +1,332 @@
+{% extends "!base.html" %}
+{% block title %}Детализация{% endblock %}
+{% block js %}
+<script>
+    const url = window.location.href;
+    var arr = url.split('/')
+    var org_id = arr[arr.length - 2]
+    var dates = arr[arr.length - 1]
+
+
+    const firstDateStr = dates.slice(0, 8);
+    const firstDate = new Date(`${firstDateStr.slice(2, 4)}/${firstDateStr.slice(0, 2)}/${firstDateStr.slice(4)}`);
+    const start_year = firstDate.getFullYear();
+    const start_month = String(firstDate.getMonth() + 1).padStart(2, '0');
+    const start_day = String(firstDate.getDate()).padStart(2, '0');
+    const formattedStartDate = `${start_year}-${start_month}-${start_day}`
+
+    const secondDateStr = dates.slice(8);
+    const secondDate = new Date(`${secondDateStr.slice(2, 4)}/${secondDateStr.slice(0, 2)}/${secondDateStr.slice(4)}`);
+
+    const end_year = secondDate.getFullYear();
+    const end_month = String(secondDate.getMonth() + 1).padStart(2, '0');
+    const end_day = String(secondDate.getDate()).padStart(2, '0');
+    const formattedEndDate = `${end_year}-${end_month}-${end_day}`
+
+    var start_date_input = document.getElementById("date_start");
+    var end_date_input = document.getElementById("date_end");
+    var total_div = document.getElementById("total_on_range");
+
+    start_date_input.value = formattedStartDate
+    end_date_input.value = formattedEndDate
+
+    function calcTotal(x) {
+        var add = 0
+        var freeze = 0
+        var spent = 0
+        var unfreezed = 0
+
+        for (i in x) {
+            if (x[i].action_id === 1) {
+                add = add + x[i].amount
+            }
+            if (x[i].action_id === 2) {
+                freeze = freeze + x[i].amount
+            }
+            if (x[i].action_id === 3) {
+                spent = spent + x[i].amount
+            }
+            if (x[i].action_id === 4) {
+                unfreezed = unfreezed + x[i].amount
+            }
+        }
+
+        return {
+            'add': add,
+            'freeze': freeze,
+            'spent': spent,
+            'unfreezed': unfreezed,
+            'total': add + unfreezed - freeze - spent
+        }
+    }
+
+    $.ajax({
+        url: '/payments/getOrderedHistoryDetails?org_id=' + org_id + '&start=' + formattedStartDate + '&end=' + formattedEndDate,
+        method: 'get',
+        success: function (data) {
+
+            if (data.length > 0) {
+                var t = calcTotal(data)
+                total_div.innerHTML = '' +
+                    '<h6>Итого за выбранный период</h6>' +
+                    '<span>Пополнение: ' + t['add'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Заморозка: ' + t['freeze'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Списание: ' + t['spent'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Разморозка: ' + t['unfreezed'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Итого: ' + t['total'].toLocaleString('ru-RU') + ' ₽</span>'
+            }
+
+
+            $('#dt_wallet_details').DataTable({
+                "data": data,
+                "paging": true,
+                "pageLength": 50,
+                "lengthMenu": [[50, 100, 250, -1], [50, 100, 250, "All"]],
+                "searching": true,
+                "ordering": true,
+                autoWidth: false,
+
+                columns: [
+                    {
+                        "data": 'id'
+                    },
+                    {
+                        data: 'date',
+                        "render": function (data, type, row) {
+                            return moment(data).format('DD.MM.YYYY HH:mm:ss')
+                        }
+                    },
+                    {
+                        data: 'amount',
+                        "render": function (data, type, row) {
+                            var sign = '-'
+                            var tx_clr = ''
+
+                            if (row.action_id === 1) {
+                                sign = '+'
+                                tx_clr = 'text-success'
+                            }
+
+                            if (row.action_id === 2) {
+                                sign = '-'
+                                tx_clr = 'text-info'
+                            }
+
+                            if (row.action_id === 3) {
+                                sign = '-'
+                                tx_clr = 'text-danger'
+                            }
+
+                            if (row.action_id === 4) {
+                                sign = '+'
+                                tx_clr = 'text-warning'
+                            }
+
+                            return '<b class="text-nowrap ' + tx_clr + ' ">' + sign + data.toLocaleString('ru-RU') + ' ₽</b>'
+                        }
+                    },
+                    {
+                        data: 'action_id',
+                        "render": function (data, type, row) {
+                            var action = 'Не указано'
+                            var color = 'info'
+                            if (data === 1) {
+                                action = 'Пополнение'
+                                color = 'success'
+                            }
+
+                            if (data === 2) {
+                                action = 'Заморозка'
+                                color = 'info'
+                            }
+
+                            if (data === 3) {
+                                action = 'Списание'
+                                color = 'danger'
+                            }
+
+                            if (data === 4) {
+                                action = 'Разморозка'
+                                color = 'warning'
+                            }
+
+                            return '<span class="badge bg-label-' + color + '">' + action + '</span>'
+                        }
+                    },
+                    {
+                        data: 'target',
+                        "render": function (data, type, row) {
+                            var ds = '—'
+
+                            if (row.target !== null) {
+                                ds = data.title
+                            }
+                            return ds
+                        }
+                    },
+                    {
+                        data: 'record_id',
+                        "render": function (data, type, row) {
+                            var ds = '—'
+
+                            if (row.record_id !== null) {
+                                ds = data
+                            }
+                            return ds
+                        }
+                    },
+                    {
+                        data: 'description',
+                        "render": function (data, type, row) {
+                            var ds = '—'
+
+                            if (row.description !== null) {
+                                ds = data
+                            }
+                            return ds
+                        }
+                    },
+
+                ],
+                autoWidth: false,
+
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+
+                "order": [[0, "desc"]]
+            });
+
+            document.getElementById('refresh_details_btn').classList.remove('disabled')
+
+            if (data.length !== 0) {
+                document.getElementById('pay-plan-btn').classList.remove('disabled')
+                document.getElementById('pay-plan-btn').innerText = 'Оплатить задачи на ' + moment(currentDate).format('DD.MM.YYYY')
+            }
+
+        },
+
+        error: function () {
+            toastr.error('Ошибка загрузки плана')
+
+        }
+
+    });
+
+    function refreshDetails() {
+        document.getElementById('refresh_details_btn').classList.add('disabled')
+        total_div.innerHTML = ''
+        $.ajax({
+
+            url: '/payments/getOrderedHistoryDetails?org_id=' + org_id + '&start=' + start_date_input.value + '&end=' + end_date_input.value,
+            method: 'get',
+
+            success: function (data) {
+
+                var table = $('#dt_wallet_details').DataTable();
+                table.clear()
+                table.draw()
+                table.rows.add(data).draw();
+
+                if (data.length > 0) {
+                    var t = calcTotal(data)
+                    total_div.innerHTML = '' +
+                        '<h6>Итого за выбранный период</h6>' +
+                        '<span>Пополнение: ' + t['add'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Заморозка: ' + t['freeze'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Списание: ' + t['spent'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Разморозка: ' + t['unfreezed'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Итого: ' + t['total'].toLocaleString('ru-RU') + ' ₽</span>'
+
+
+                }
+
+                toastr.info('Данные обновлены')
+                document.getElementById('refresh_details_btn').classList.remove('disabled')
+            },
+
+            error: function () {
+                toastr.error('Ошибка загрузки данных. Обновите страницу и повторите попытку')
+                document.getElementById('refresh_details_btn').classList.remove('disabled')
+            }
+
+        });
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+
+        <div class="col">
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h5 class="card-title mb-0">Детализация кошелька</h5>
+
+                    <div class="card-body table-responsive">
+
+                        <div class="row mt-3 mb-3">
+                            <div class="col-lg-auto">
+                                <input type="date" class="form-control" id="date_start">
+                            </div>
+                            <div class="col-lg-auto">
+                                <input type="date" class="form-control" id="date_end">
+                            </div>
+                            <div class="col-lg-auto">
+                                <a href="javascript:refreshDetails()" class="btn btn-primary disabled"
+                                   id="refresh_details_btn">Обновить</a>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3 mb-3" id="total_on_range"></div>
+
+                        <table id="dt_wallet_details" class="datatables-ajax table table-bordered dataTable no-footer ">
+                            <thead>
+                            <tr>
+                                <th>№ операции</th>
+                                <th>Дата и время</th>
+                                <th>Сумма</th>
+                                <th>Тип операции</th>
+                                <th>Цель</th>
+                                <th>Номер задачи</th>
+                                <th>Описание</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}

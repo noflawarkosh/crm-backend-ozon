@@ -1,0 +1,806 @@
+{% extends "!base-admin.html" %}
+{% block title %}Планирование | {% endblock %}
+{% block css %}
+
+{% endblock %}
+
+{% block js %}
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+
+<script>
+
+    const firstDate = new Date();
+    const start_year = firstDate.getFullYear();
+    const start_month = String(firstDate.getMonth() + 1).padStart(2, '0');
+    const start_day = String(firstDate.getDate()).padStart(2, '0');
+    const formattedStartDate = `${start_year}-${start_month}-${start_day}`
+
+    document.getElementById('picker_date').value = formattedStartDate;
+
+    var servers = []
+
+    const PFT = {
+        'l2': ['L2', 'Заказано на пвз'],
+        'l3': ['L3', 'Дата заказа на адрес'],
+        'l4': ['L4', 'Будет завтра на адресе'],
+        'l5': ['L5', 'Заказано на акке сейчас'],
+        'r2': ['R2', 'Максимум дней для расчёта'],
+        'r3': ['R3', 'Максимум дней для расчёта'],
+        'r4': ['R4', 'Будет завтра на адресе ограничение'],
+        'lo': ['LO', 'Макс дней с последнего заказа на аккаунте'],
+        'al': ['AL', 'Время жизни аккаунта в днях'],
+        'k_format': ['KF', 'Формат даты в листе'],
+    }
+
+    function switchButtons(x) {
+        if (x) {
+            document.getElementById('btn1').classList.remove('disabled')
+            document.getElementById('btn2').classList.remove('disabled')
+            //document.getElementById('btn3').classList.remove('disabled')
+            document.getElementById('btn4').classList.remove('disabled')
+            document.getElementById('btn5').classList.remove('disabled')
+            document.getElementById('btn6').classList.remove('disabled')
+            return
+        }
+
+        document.getElementById('btn1').classList.add('disabled')
+        document.getElementById('btn2').classList.add('disabled')
+        //document.getElementById('btn3').classList.add('disabled')
+        document.getElementById('btn4').classList.add('disabled')
+        document.getElementById('btn5').classList.add('disabled')
+        document.getElementById('btn6').classList.add('disabled')
+    }
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/pickersettings?id=1',
+        success: function (data) {
+            data = data[0]
+            var rows = ''
+
+            for (var key in PFT) {
+
+                rows += '<tr><td>' + PFT[key][0] + '</td><td><b>' + data[key] + '</b></td><td>' + PFT[key][1] + '</td></tr>'
+            }
+
+            $('#config-table').append('<tbody>' + rows + '</tbody>').show()
+            document.getElementById('ldr_config').style.display = 'none'
+        },
+        error: function (data) {
+            toastr.error('Ошибка получения конфигурации подбора')
+            toastr.error(data.responseJSON.detail)
+
+        }
+    })
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/servers?is_active=true',
+        success: function (data) {
+
+            var rows = ''
+            servers = data
+            for (var i in data) {
+
+                rows += '<tr>\n' +
+                    '                                    <td>' + data[i].name + '</td>\n' +
+                    '                                    <td><input class="form-control" type="file" accept=".xlsx" id="active-' + data[i].id + '"></td>\n' +
+                    '                                    <td><input class="form-control" type="file" accept=".xlsx" id="collected-' + data[i].id + '"></td>\n' +
+                    '                                    <td><input class="form-control" type="file" accept=".xlsx" id="plan-' + data[i].id + '"></td>\n' +
+                    '                                </tr>'
+            }
+
+            $('#form-table-body').append(rows)
+            $('#form-table').show()
+
+            document.getElementById('ldr_picker').style.display = 'none'
+            document.getElementById('picker_div').style.display = 'block'
+        },
+        error: function () {
+            toastr.error('Ошибка получения информации о серверах')
+            toastr.error(data.responseJSON.detail)
+
+        }
+    })
+
+</script>
+
+
+<script>
+
+    function generate_plan_tmp() {
+
+        switchButtons(false)
+
+        document.getElementById('history_console').innerText = 'Выполняется ...'
+
+        $.ajax({
+            type: "POST",
+            url: '/picker/generatePlan2?date=' + document.getElementById('picker_date').value,
+
+            success: function () {
+                switchButtons(true)
+                document.getElementById('history_console').innerText = 'Выполнено'
+                toastr.success('Подбор аккаунтов завершен')
+                dt_refresh('dt_picker_history', '/admin/get/pickerhistory')
+
+            },
+            error: function (data) {
+                document.getElementById('history_console').innerText = 'Ошибка выполнения'
+                switchButtons(true)
+                toastr.error('Ошибка выполнения')
+                toastr.error(data.responseJSON.detail)
+            }
+        })
+
+    }
+
+    function generate_plan() {
+
+        switchButtons(false)
+
+        document.getElementById('history_console').innerText = 'Выполняется ...'
+
+        var ba = document.getElementById('bad_accounts').value
+
+        var formData = new FormData();
+        formData.append('date', document.getElementById('picker_date').value);
+        formData.append('bad_accounts', document.getElementById('bad_accounts').value);
+
+        $.ajax({
+            type: "POST",
+            url: '/picker/generatePlan?date=' + document.getElementById('picker_date').value,
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function () {
+                switchButtons(true)
+                document.getElementById('history_console').innerText = 'Выполнено'
+                toastr.success('Подбор аккаунтов завершен')
+                dt_refresh('dt_picker_history', '/admin/get/pickerhistory')
+
+            },
+            error: function (data) {
+                document.getElementById('history_console').innerText = 'Ошибка выполнения'
+                switchButtons(true)
+                toastr.error('Ошибка выполнения')
+                toastr.error(data.responseJSON.detail)
+            }
+        })
+
+    }
+
+    function picker(refresh, generate) {
+
+        if (refresh) {
+            switchButtons(false)
+            document.getElementById('dt_logs_accounts_div').innerHTML = '<table id="dt_logs_accounts" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+                '                        <thead>\n' +
+                '                        <tr>\n' +
+                '                            <th>Номер</th>\n' +
+                '                            <th>Статус</th>\n' +
+                '                            <th>Описание</th>\n' +
+                '                            <th>Значение</th>\n' +
+                '                            <th>Сервер</th>\n' +
+                '                            <th>Файл</th>\n' +
+                '                            <th>Строка</th>\n' +
+                '                        </tr>\n' +
+                '                        </thead>\n' +
+                '                    </table>'
+
+            document.getElementById('dt_logs_orders_div').innerHTML = '<table id="dt_logs_orders" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+                '                        <thead>\n' +
+                '                        <tr>\n' +
+                '                            <th>UUID</th>\n' +
+                '                            <th>SID</th>\n' +
+                '                            <th>Статус</th>\n' +
+                '                            <th>Описание</th>\n' +
+                '                            <th>Значение</th>\n' +
+                '                            <th>Сервер</th>\n' +
+                '                            <th>Файл</th>\n' +
+                '                            <th>Строка</th>\n' +
+                '                        </tr>\n' +
+                '                        </thead>\n' +
+                '                    </table>'
+
+            document.getElementById('dt_logs_payments_div').innerHTML = '<table id="dt_logs_payments" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+                '                        <thead>\n' +
+                '                        <tr>\n' +
+                '                            <th>UUID</th>\n' +
+                '                            <th>Статус</th>\n' +
+                '                            <th>Описание</th>\n' +
+                '                            <th>Значение</th>\n' +
+                '                            <th>Сервер</th>\n' +
+                '                            <th>Файл</th>\n' +
+                '                            <th>Строка</th>\n' +
+                '                        </tr>\n' +
+                '                        </thead>\n' +
+                '                    </table>'
+
+            document.getElementById('orders_console').innerText = 'Выполняется обработка ...'
+            document.getElementById('accounts_console').innerText = 'Выполняется обработка ...'
+            document.getElementById('payments_console').innerText = 'Выполняется обработка ...'
+
+            document.getElementById('logs_accounts').style.display = 'block'
+            document.getElementById('logs_orders').style.display = 'block'
+            document.getElementById('logs_payments').style.display = 'block'
+
+            var formData = new FormData();
+            for (var i in servers) {
+                formData.append('active-' + servers[i].id, $('#active-' + servers[i].id)[0].files[0]);
+                formData.append('collected-' + servers[i].id, $('#collected-' + servers[i].id)[0].files[0]);
+                formData.append('plan-' + servers[i].id, $('#plan-' + servers[i].id)[0].files[0]);
+            }
+
+            $.ajax({
+                type: "POST",
+                url: '/picker/refreshOrders',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (data) {
+
+                    $('#dt_logs_accounts').DataTable({
+                        "data": data['accounts'],
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "searching": true,
+                        "ordering": true,
+                        autoWidth: false,
+                        "columns": [
+                            {
+                                data: 'target',
+                                render: function (data, type, row) {
+                                    return '<b>' + data + '</b>'
+                                }
+                            },
+                            {
+                                data: 'success',
+                                render: function (data, type, row) {
+                                    if (data === true) {
+                                        return '<span class="badge bg-label-success">Успех</span>'
+                                    } else {
+                                        return '<span class="badge bg-label-danger">Ошибка</span>'
+                                    }
+                                }
+                            },
+                            {
+                                data: 'detail',
+                            },
+                            {
+                                data: 'value',
+                                render: function (data, type, row) {
+                                    if (row.success === false) {
+                                        return '<b class="text-danger">' + data + '</b>'
+                                    }
+                                    return ''
+                                }
+                            },
+                            {
+                                data: 'server',
+                            },
+                            {
+                                data: 'orders_type',
+                            },
+                            {
+                                data: 'line',
+                            },
+
+                        ],
+                        "order": [[1, "asc"]],
+                    });
+
+
+                    $('#dt_logs_orders').DataTable({
+                        "data": data['orders'],
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "searching": true,
+                        "ordering": true,
+                        autoWidth: false,
+                        "columns": [
+                            {
+                                data: 'target',
+                                render: function (data, type, row) {
+                                    return '<b>' + data + '</b>'
+                                }
+                            },
+                            {
+                                data: 'sid',
+                                render: function (data, type, row) {
+                                    return '<b>' + data + '</b>'
+                                }
+                            },
+                            {
+                                data: 'success',
+                                render: function (data, type, row) {
+                                    if (data === true) {
+                                        return '<span class="badge bg-label-success">Успех</span>'
+                                    } else {
+                                        return '<span class="badge bg-label-danger">Ошибка</span>'
+                                    }
+                                }
+                            },
+                            {
+                                data: 'detail',
+                            },
+                            {
+                                data: 'value',
+                                render: function (data, type, row) {
+                                    if (row.success === false) {
+                                        return '<b class="text-danger">' + data + '</b>'
+                                    }
+                                    return ''
+                                }
+                            },
+                            {
+                                data: 'server',
+                            },
+                            {
+                                data: 'orders_type',
+                            },
+                            {
+                                data: 'line',
+                            },
+
+                        ],
+                        "order": [[1, "asc"]],
+                    });
+
+                    $('#dt_logs_payments').DataTable({
+                        "data": data['payments'],
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "searching": true,
+                        "ordering": true,
+                        autoWidth: false,
+                        "columns": [
+                            {
+                                data: 'target',
+                                render: function (data, type, row) {
+                                    return '<b>' + data + '</b>'
+                                }
+                            },
+                            {
+                                data: 'success',
+                                render: function (data, type, row) {
+                                    if (data === true) {
+                                        return '<span class="badge bg-label-success">Успех</span>'
+                                    } else {
+                                        return '<span class="badge bg-label-danger">Ошибка</span>'
+                                    }
+                                }
+                            },
+                            {
+                                data: 'detail',
+                            },
+                            {
+                                data: 'value',
+                                render: function (data, type, row) {
+                                    return data
+                                }
+                            },
+                            {
+                                data: 'server',
+                            },
+                            {
+                                data: 'orders_type',
+                            },
+                            {
+                                data: 'line',
+                            },
+
+                        ],
+                        "order": [[1, "asc"]],
+                    });
+
+                    document.getElementById('orders_console').innerText = 'Выполнено'
+                    document.getElementById('accounts_console').innerText = 'Выполнено'
+                    document.getElementById('payments_console').innerText = 'Выполнено'
+                    toastr.success('Обработка аккаунтов и заказов завершена')
+
+                    switchButtons(true)
+                },
+
+                error: function (data) {
+                    document.getElementById('orders_console').innerText = 'Ошибка обработки'
+                    document.getElementById('accounts_console').innerText = 'Ошибка обработки'
+                    document.getElementById('payments_console').innerText = 'Ошибка обработки'
+                    switchButtons(true)
+                    toastr.error('Ошибка обработки заказов')
+                    toastr.error(data.responseJSON.detail)
+
+                }
+            })
+        }
+
+
+    }
+
+</script>
+
+<!-- picker history -->
+<script>
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/pickerhistory',
+        success: function (data) {
+            document.getElementById('dt_picker_history_div').innerHTML = '<table id="dt_picker_history" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+                '                        <thead>\n' +
+                '                        <tr>\n' +
+                  '                            <th>ID</th>\n' +
+                '                            <th>Дата</th>\n' +
+                '                            <th>План</th>\n' +
+                                '                            <th>Логи</th>\n' +
+
+                '                            <th>Сервер</th>\n' +
+                '                        </tr>\n' +
+                '                        </thead>\n' +
+                '                    </table>'
+
+            $('#dt_picker_history').DataTable({
+                "data": data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+                autoWidth: false,
+                "columns": [
+                    {
+                        data: 'id',
+
+                    },
+                    {
+                        data: 'date',
+                        render: function (data, type, row) {
+                            return moment(data).format('DD.MM.YYYY HH:mm:ss')
+                        }
+                    },
+                    {
+                        data: 'result',
+                        render: function (data, type, row) {
+                            if (data) {
+                                return '<a target="_blank" href="https://storage.yandexcloud.net/greedybear/' + data + '">Скачать</a>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'logs',
+                        render: function (data, type, row) {
+                            if (data) {
+                                return '<a target="_blank" href="https://storage.yandexcloud.net/greedybear/' + data + '">Скачать</a>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+
+                    {
+                        data: 'server',
+                        render: function (data, type, row) {
+                            return data.name
+                        }
+                    },
+
+                ],
+                "order": [[0, "desc"]],
+            });
+
+
+            document.getElementById('ldr_history').style.display = 'none'
+        },
+
+        error: function (data) {
+            toastr.error('Ошибка получения истории подборов')
+            toastr.error(data.responseJSON.detail)
+        }
+    })
+</script>
+
+<!-- identify -->
+<script>
+    function identity_orders(with_pay, is_test) {
+
+        var formData = new FormData();
+        formData.append('orders', $('#uuids')[0].files[0]);
+        formData.append('with_payments', with_pay);
+        formData.append('is_test', is_test);
+        switchButtons(false)
+
+
+        document.getElementById('dt_logs_identify_div').innerHTML = '<table id="dt_logs_identify" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+            '                        <thead>\n' +
+            '                        <tr>\n' +
+            '                            <th>UUID</th>\n' +
+            '                            <th>Статус</th>\n' +
+            '                            <th>Описание</th>\n' +
+            '                            <th>Значение</th>\n' +
+            '                            <th>Строка</th>\n' +
+            '                        </tr>\n' +
+            '                        </thead>\n' +
+            '                    </table>'
+
+        document.getElementById('identity_console').innerText = 'Выполняется обработка ...'
+        document.getElementById('logs_identify').style.display = 'block'
+
+        $.ajax({
+            type: "POST",
+            url: '/picker/identifyOrders',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+
+                $('#dt_logs_identify').DataTable({
+                    "data": data,
+                    "paging": true,
+                    "pageLength": 10,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    "searching": true,
+                    "ordering": true,
+                    autoWidth: false,
+                    "columns": [
+                        {
+                            data: 'target',
+                            render: function (data, type, row) {
+                                return '<b>' + data + '</b>'
+                            }
+                        },
+                        {
+                            data: 'success',
+                            render: function (data, type, row) {
+                                if (data === true) {
+                                    return '<span class="badge bg-label-success">Успех</span>'
+                                } else {
+                                    return '<span class="badge bg-label-danger">Ошибка</span>'
+                                }
+                            }
+                        },
+                        {
+                            data: 'detail',
+                        },
+                        {
+                            data: 'value',
+                            render: function (data, type, row) {
+                                if (row.success === false) {
+                                    return '<b class="text-danger">' + data + '</b>'
+                                }
+                                return data
+                            }
+                        },
+                        {
+                            data: 'line',
+                        },
+
+                    ],
+                    "order": [[1, "asc"]],
+                });
+
+                switchButtons(true)
+
+                var we = false
+                for (var i in data) {
+                    if (data[i].success === false) {
+                        we = true
+                        break
+                    }
+                }
+
+                if (!we) {
+                    toastr.success('Идентификация заказов успешно завершена')
+                    document.getElementById('identity_console').innerText = 'Выполнено'
+                } else {
+                    toastr.error('Идентификация заказов не завершена. Необходимо исправить ошибки')
+                    document.getElementById('identity_console').innerText = 'Идентификация заказов не завершена. Необходимо исправить ошибки и повторить попытку'
+                }
+
+            },
+            error: function (data) {
+                switchButtons(true)
+                toastr.error('Ошибка идентификации')
+                toastr.error(data.responseJSON.detail)
+                document.getElementById('identity_console').innerText = 'Ошибка'
+
+            }
+        })
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row" style="display: none">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Идентификация заказов</h5>
+                    <small>Перед подбором аккаунтов необходимо идентифицировать заказы прошлого дня (заполненный ботом
+                        файл плана)</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col">
+                            <input class="form-control" type="file" accept=".xlsx" id="uuids">
+                        </div>
+                        <div class="col">
+                            <div class="row">
+                                <div class="col">
+                                    <button id="btn1" onclick="identity_orders(true, false)"
+                                            class="btn btn-primary w-100">
+                                        ₽ Выполнить
+                                    </button>
+                                </div>
+                                <div class="col">
+                                    <button id="btn2" onclick="identity_orders(false, false)"
+                                            class="btn btn-label-primary w-100">
+                                        Выполнить
+                                    </button>
+                                </div>
+                                <div class="col">
+                                    <button id="btn6" onclick="identity_orders(false, true)"
+                                            class="btn btn-label-primary w-100">
+                                        Проверка
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3" id="logs_identify" style="display: none">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Журнал идентификации</h5>
+                    <small class="card-subtitle" id="identity_console"></small>
+                </div>
+                <div class="card-body table-responsive" id="dt_logs_identify_div"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card h-100">
+
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Обновление заказов
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"
+                              id="ldr_picker"></span>
+                        <a target="_blank" href="/admin-tables/pickerstatuses" class="small">статусы <i
+                                class="bx bxs-arrow-to-right"></i> </a>
+                    </h5>
+
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-body" id="picker_div" style="display: none">
+
+                    <table class="table" id="form-table">
+                        <thead>
+                        <tr>
+                            <th></th>
+                            <th>Активные заказы</th>
+                            <th>Полученные заказы</th>
+                            <th>План</th>
+                        </tr>
+                        </thead>
+                        <tbody id="form-table-body">
+
+                        </tbody>
+                    </table>
+
+                    <div>
+                        <button id="btn4" onclick="picker(true, false)" class="btn btn-primary mt-4">Выполнить
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 me-1">Генерация плана
+                        <a href="javascript:dt_refresh('dt_picker_history', '/admin/get/pickerhistory')"><i
+                                class="bx bx-refresh"></i></a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"
+                              id="ldr_history"></span>
+                    </h5>
+                    <input class="form-control mt-4 w-20" type="date" id="picker_date">
+                    <div class="mt-3">
+                        <label for="bad_accounts" class="form-label">Реестровые минус аккаунты</label>
+                        <textarea class="form-control" id="bad_accounts" rows="3"></textarea>
+                    </div>
+                    <button id="btn3" onclick="generate_plan()" class="btn btn-primary mt-4">План с подбором
+                    </button>
+
+                    <button id="btn5" onclick="generate_plan_tmp()" class="btn btn-label-primary mt-4">Пустой план
+                    </button>
+
+                    <small class="card-subtitle" id="history_console"></small>
+                </div>
+                <div class="card-body table-responsive" id="dt_picker_history_div">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3" id="logs_accounts" style="display: none">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Журнал обработки аккаунтов</h5>
+                    <small class="card-subtitle" id="accounts_console"></small>
+                </div>
+                <div class="card-body table-responsive" id="dt_logs_accounts_div"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3" id="logs_orders" style="display: none">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Журнал обработки заказов</h5>
+                    <small class="card-subtitle" id="orders_console"></small>
+                </div>
+                <div class="card-body table-responsive" id="dt_logs_orders_div"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3" id="logs_payments" style="display: none">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Журнал оплаты</h5>
+                    <small class="card-subtitle" id="payments_console"></small>
+                </div>
+                <div class="card-body table-responsive" id="dt_logs_payments_div"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Конфигурация подбора
+                        <a href="/admin-edit/pickersettings/1"><i class="bx bx-edit-alt"></i></a>
+                        <a href="/admin-tables/pickerorgs"><i class="bx bx-group"></i></a>
+
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"
+                              id="ldr_config"></span>
+                    </h5>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table text-nowrap" id="config-table" style="display: none;"></table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+
+
+
+

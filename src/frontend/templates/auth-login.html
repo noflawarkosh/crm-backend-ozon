@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="ru" class="light-style layout-wide  customizer-hide" dir="ltr" data-theme="theme-default"
+      data-assets-path="../../assets/" data-template="vertical-menu-template">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+
+    <title>GreedyBear - Вход</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='assets/img/icons/logo.ico') }}"/>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/fonts/boxicons.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/css/rtl/core.css') }}"
+          class="template-customizer-core-css"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/css/rtl/theme-default.css') }}"
+          class="template-customizer-theme-css"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/css/demo.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/css/pages/page-auth.css') }}">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css"/>
+
+    <script src="{{ url_for('static', path='assets/vendor/js/helpers.js') }}"></script>
+    <script src="{{ url_for('static', path='assets/js/config.js') }}"></script>
+
+</head>
+
+<body>
+
+
+<div class="authentication-wrapper authentication-cover">
+    <div class="authentication-inner row m-0">
+
+        <div class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center p-5">
+            <div class="w-100 d-flex justify-content-center">
+                <img src="{{ url_for('static', path='assets/img/logos/logo_t.png') }}" class="img-fluid" width="700">
+            </div>
+        </div>
+
+        <div class="d-flex col-12 col-lg-5 col-xl-4 align-items-center authentication-bg p-sm-5 p-4">
+            <div class="w-px-400 mx-auto">
+
+                <div class="app-brand mb-5">
+                    <p class="app-brand-link gap-2">
+                        <span class="app-brand-text demo text-body fw-bold">greedybear</span>
+                    </p>
+                </div>
+
+                <form id="login">
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Имя пользователя</label>
+                        <input type="text" class="form-control" id="username" name="username"
+                               placeholder="username" autofocus autocomplete="nofill">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="password">Пароль</label>
+                        <div class="input-group input-group-merge">
+                            <input type="password" id="password" class="form-control" name="password"
+                                   aria-describedby="password" autocomplete="nofill"/>
+                            <span class="input-group-text cursor-pointer">
+                                <i class="bx bx-hide" id="password-toggle"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary d-grid w-100" type="submit">
+                        Войти
+                    </button>
+
+                </form>
+
+                <p class="text-center mt-3">
+                    <span>Нет учетной записи?</span>
+                    <a href="/register">
+                        <span>Зарегистрироваться</span>
+                    </a>
+                </p>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/3.3.4/jquery.inputmask.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+
+<script>
+    // Show password buttons
+    $(document).ready(function () {
+        $('#password-toggle').click(function () {
+            var input = $('#password');
+            var icon = $('#password-toggle');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('bx-hide').addClass('bx-show');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('bx-show').addClass('bx-hide');
+            }
+        });
+    });
+</script>
+
+<script>
+    // Inputmasks
+
+</script>
+
+<script>
+    document.getElementById('login').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        if ((usernameInput.value.length === 0)){
+            toastr.error('Введите логин')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        if ((passwordInput.value.length === 0)) {
+            toastr.error('Введите пароль')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/auth/login', currentDomain);
+        url.searchParams.append('username', usernameInput.value);
+        url.searchParams.append('password', passwordInput.value);
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                if (data.status  ===  409)  {
+                    location.reload()
+                }
+                toastr.error(data.responseJSON.detail);
+                submitButton.classList.remove('disabled');
+            }
+        });
+
+    });
+</script>
+
+
+</body>
+
+</html>

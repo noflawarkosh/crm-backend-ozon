@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+
+<html lang="ru" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact " dir="ltr"
+      data-theme="theme-default" data-assets-path="../../assets/" data-template="vertical-menu-template">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+
+    <title>{% block title %}{% endblock %} - GreedyBear</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='assets/img/icons/logo.ico') }}"/>
+
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
+
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/boxicons.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/fontawesome.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/flag-icons.css') }}"/>
+
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/rtl/core.css') }}"
+          class="template-customizer-core-css"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/rtl/theme-default.css') }}"
+          class="template-customizer-theme-css"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/css/demo.css') }}"/>
+
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/libs/flatpickr/flatpickr.css') }}"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css"/>
+
+    <!-- Page CSS -->
+    {% block head %}{% endblock %}
+
+    <!-- Helpers -->
+    <script src="{{ url_for('static', path='assets/vendor/js/helpers.js') }}"></script>
+    <script src="{{ url_for('static', path='assets/js/config.js') }}"></script>
+</head>
+
+
+<body id="page_body">
+<div class="layout-wrapper layout-content-navbar">
+    <div class="layout-container">
+
+        <!-- Side Menu -->
+        <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+
+            <div class="app-brand demo ">
+                <a href="/dashboard" class="app-brand-link">
+                    <span class="app-brand-logo demo"></span>
+                    <span class="app-brand-text demo menu-text fw-bold ms-2">greedybear</span>
+                </a>
+                <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+                    <i class="bx bx-chevron-left bx-sm align-middle"></i>
+                </a>
+            </div>
+
+            <ul class="menu-inner py-1" id="aside-menu">
+
+                <li class="menu-item active">
+                    <a href="/dashboard" class="menu-link">
+                        <i class="menu-icon tf-icons bx bxs-dashboard"></i>
+                        <div class="text-truncate" data-i18n="Главная">Главная</div>
+                    </a>
+                </li>
+
+                <li class="menu-header small text-uppercase" id="orgs-mine">
+                    <span class="menu-header-text" data-i18n="Мои организации"></span>
+                    <a href="#" data-bs-toggle="offcanvas" data-bs-target="#off-create" aria-controls="off-create">
+                        <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                           data-bs-original-title="Создать">
+                        </i>
+                    </a>
+                    <i class="bx bx-cloud-download" id="orgs1_ldr"></i>
+                </li>
+
+                <li class="menu-header small text-uppercase" id="orgs-other">
+                    <span class="menu-header-text" data-i18n="Другие организации"></span>
+                    <a href="#" data-bs-toggle="offcanvas" data-bs-target="#off-connect" aria-controls="off-connect">
+                        <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                           data-bs-original-title="Присоединиться">
+                        </i>
+                    </a>
+                    <i class="bx bx-cloud-download" id="orgs2_ldr"></i>
+                </li>
+
+                <li class="menu-header small text-uppercase" id="orgs-competitors">
+                    <span class="menu-header-text" data-i18n="Конкуренты"></span>
+                    <a href="#" data-bs-toggle="offcanvas" data-bs-target="#off-competitors"
+                       aria-controls="off-competitors">
+                        <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                           data-bs-original-title="Добавить">
+                        </i>
+                    </a>
+                    <i class="bx bx-cloud-download" id="orgs3_ldr"></i>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Top Nav -->
+        <div class="layout-page">
+
+            <nav class="layout-navbar navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
+                 id="layout-navbar">
+
+                <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0   d-xl-none ">
+                    <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+                        <i class="bx bx-menu bx-sm"></i>
+                    </a>
+                </div>
+
+                <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+                    <div id="topnavicons">
+
+                    </div>
+                    <div class="navbar-nav align-items-center">
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="page_ldr"
+                              style="display: none;"></span>
+                        <!--
+                        <div class="nav-item navbar-search-wrapper mb-0">
+                            <a class="nav-item nav-link search-toggler px-0" href="javascript:void(0);">
+                                <i class="bx bx-search bx-sm"></i>
+                                <span class="d-none d-md-inline-block text-muted">Поиск (Ctrl+/)</span>
+                            </a>
+                        </div>
+                        -->
+                    </div>
+
+                    <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+                        <!-- Notifications
+                        <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-1">
+
+                            <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);"
+                               data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="bx bx-bell bx-sm"></i>
+                                <span class="badge bg-danger rounded-pill badge-notifications">1</span>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end py-0">
+
+                                <li class="dropdown-menu-header border-bottom">
+                                    <div class="dropdown-header d-flex align-items-center py-3">
+                                        <h5 class="text-body mb-0 me-auto">Уведомления</h5>
+                                        <a href="javascript:void(0)" class="dropdown-notifications-all text-body"
+                                           data-bs-toggle="tooltip" data-bs-placement="top" title="Mark all as read"><i
+                                                class="bx fs-4 bx-envelope-open"></i></a>
+                                    </div>
+                                </li>
+
+                                <li class="dropdown-notifications-list scrollable-container">
+                                    <ul class="list-group list-group-flush">
+
+                                        <li class="list-group-item list-group-item-action dropdown-notifications-item">
+                                            <div class="d-flex">
+                                                <div class="flex-shrink-0 me-3">
+                                                    <div class="avatar">
+                                                        <img src="{{ url_for('static', path='assets/img/avatars/1.png') }}"
+                                                             alt
+                                                             class="w-px-40 h-auto rounded-circle">
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">Заголовок</h6>
+                                                    <p class="mb-0">Текст</p>
+                                                    <small class="text-muted">00.00.00 00:00</small>
+                                                </div>
+                                                <div class="flex-shrink-0 dropdown-notifications-actions">
+                                                    <a href="javascript:void(0)"
+                                                       class="dropdown-notifications-read"><span
+                                                            class="badge badge-dot"></span></a>
+                                                    <a href="javascript:void(0)" class="dropdown-notifications-archive"><span
+                                                            class="bx bx-x"></span></a>
+                                                </div>
+                                            </div>
+                                        </li>
+
+                                    </ul>
+                                </li>
+                                <li class="dropdown-menu-footer border-top p-3">
+                                    <button class="btn btn-primary text-uppercase w-100">Все уведомления</button>
+                                </li>
+                            </ul>
+                        </li>
+                        -->
+                        <!-- User -->
+                        <li class="nav-item navbar-dropdown dropdown-user dropdown">
+
+
+                            <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);"
+                               data-bs-toggle="dropdown">
+                                <div class="avatar avatar-online" id="my-avatar-nav"></div>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/profile">
+                                        <div class="d-flex">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="avatar avatar-online" id="my-avatar-drop">
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <span class="fw-medium d-block" id="nav-name"></span>
+                                                <small class="text-muted" id="nav-username"></small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <div class="dropdown-divider"></div>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/profile">
+                                        <i class="bx bx-user me-2"></i>
+                                        <span class="align-middle">Профиль</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/settings">
+                                        <i class="bx bx-cog me-2"></i>
+                                        <span class="align-middle">Настройки</span>
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <div class="dropdown-divider"></div>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript:toastr.info('Раздел в разработке')">
+                                        <i class="bx bx-help-circle me-2"></i>
+                                        <span class="align-middle">Помощь</span>
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <div class="dropdown-divider"></div>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item" href="javascript:logout();">
+                                        <i class="bx bx-power-off me-2"></i>
+                                        <span class="align-middle">Выйти</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </div>
+
+
+            </nav>
+
+            <!-- Content -->
+            <div class="content-wrapper">
+
+                <div class="container-p-y" style="padding-left: 26px; padding-right: 26px">
+                    {% block content %}
+                    {% endblock %}
+                </div>
+
+                <div class="content-backdrop fade"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mt-3" id="create-org">
+        <div class="offcanvas offcanvas-start" id="off-create">
+
+            <div class="offcanvas-header">
+                <h5 id="off-create-label" class="offcanvas-title">Добавление организации</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                        aria-label="Закрыть"></button>
+            </div>
+
+            <div class="offcanvas-body mx-0 flex-grow-0">
+                <p>Вы создадите организацию и будете её владельцем. При необходимости сможете приглашать других
+                    сотрудников для управления</p>
+
+                <form id="create-org-form">
+                    <div class="mb-3">
+                        <label class="form-label" for="org-title">Название организации</label>
+                        <input type="text" class="form-control" id="org-title" placeholder="ИП Иванов">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="org-inn">ИНН</label>
+                        <input type="text" class="form-control" id="org-inn" placeholder="000000000000">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Создать</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+
+    <div class="mt-3">
+        <div class="offcanvas offcanvas-start" id="off-connect">
+
+            <div class="offcanvas-header">
+                <h5 id="off-connect-label" class="offcanvas-title">Присоединиться к организации</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                        aria-label="Закрыть"></button>
+            </div>
+
+            <div class="offcanvas-body mx-0 flex-grow-0">
+                <p>Попросите владельца организации создать код приглашения и введите его в этом поле. После этого вы
+                    получите доступ к разрешённым владельцем разделам</p>
+                <form id="connect-org-form">
+                    <div class="mb-3">
+                        <label class="form-label" for="org-code">Код приглашения</label>
+                        <input type="text" class="form-control" id="org-code" placeholder="XXX-XXX-XXX">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Присоединиться</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <div class="offcanvas offcanvas-start" id="off-competitors">
+
+            <div class="offcanvas-header">
+                <h5 id="off-competitors-label" class="offcanvas-title">Добавление организации конкурента</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                        aria-label="Закрыть"></button>
+            </div>
+
+            <div class="offcanvas-body mx-0 flex-grow-0"><p> Здесь вы можете добавить организацию в специальный раздел
+                по работе с конкурентами. </p>
+                <p>Обратите внимание, что применение такого метода манипулирования рейтингами конкурентов является
+                    недобросовестной практикой и может быть расценено как неправомерное действие и привести к правовым
+                    последствиям согласно действующему законодательству РФ</p>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="terms_flag">
+                    <label class="form-check-label" for="terms_flag">
+                        Я ознакомлен (а) с законодательством РФ о защите деловой репутации и осознаю все связанные с
+                        этим риски
+                    </label>
+                </div>
+                <form id="competitors-org-form">
+                    <div class="mb-3">
+                        <label class="form-label" for="org-title">Название организации</label>
+                        <input type="text" class="form-control" id="competitors-org-title" placeholder="ИП Иванов">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="org-inn">ИНН</label>
+                        <input type="text" class="form-control" id="competitors-org-inn" placeholder="000000000000">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Создать</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Overlay -->
+    <div class="layout-overlay layout-menu-toggle"></div>
+
+    <!-- Drag Target Area To SlideIn Menu On Small Screens -->
+    <div class="drag-target"></div>
+
+</div>
+
+<script src="{{ url_for('static', path='assets/js/app-user-view-account.js') }}"></script>
+
+<script src="{{ url_for('static', path='assets/vendor/libs/jquery/jquery.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/popper/popper.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/js/bootstrap.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/hammer/hammer.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/i18n/i18n.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/js/menu.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/moment/moment.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/flatpickr/flatpickr.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/main.js') }}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/3.3.4/jquery.inputmask.bundle.min.js"></script>
+
+
+<!-- Inputmasks -->
+<script>
+    $(document).ready(function () {
+
+        innOptions = {
+            mask: '9{10,12}',
+            definitions: {
+                '*': {
+                    validator: '[0-9]',
+                },
+            },
+            placeholder: ''
+        };
+
+        codeOptions = {
+            mask: 'AAA-AAA-AAA',
+            autoUpper: true,
+            definitions: {
+                'A': {
+                    validator: "[A-Za-z0-9]"
+                }
+            }
+        };
+
+        $('#org-inn').inputmask(innOptions);
+        $('#competitors-org-inn').inputmask(innOptions);
+        $('#org-code').inputmask(codeOptions);
+
+    });
+</script>
+
+<!-- Create Org -->
+<script>
+    document.getElementById('create-org-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        const titleInput = document.getElementById('org-title');
+        const innInput = document.getElementById('org-inn');
+
+        if ((titleInput.value.length === 0)) {
+            toastr.error('Введите название организации')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        if ((innInput.value.length === 0) || (innInput.value.length < 10) || (innInput.value.length > 12)) {
+            toastr.error('Длина ИНН составляет 10-12 символов. Текущая: ' + innInput.value.length)
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/organizations/createOrganization', currentDomain);
+        url.searchParams.append('title', titleInput.value);
+        url.searchParams.append('inn', innInput.value);
+        url.searchParams.append('is_competitor', 'False');
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function () {
+                location.reload()
+            },
+            error: function (data) {
+
+                toastr.error(data.responseJSON.detail)
+                submitButton.classList.remove('disabled');
+            }
+        });
+
+    });
+</script>
+
+<script>
+    document.getElementById('competitors-org-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        var tts = document.getElementById('terms_flag');
+        if (!tts.checked) {
+            toastr.error('Вы не поставили отметку, что понимаете возможные риски')
+            return
+        }
+
+        submitButton.classList.add('disabled');
+
+        const titleInput = document.getElementById('competitors-org-title');
+        const innInput = document.getElementById('competitors-org-inn');
+
+        if ((titleInput.value.length === 0)) {
+            toastr.error('Введите название организации')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        if ((innInput.value.length === 0) || (innInput.value.length < 10) || (innInput.value.length > 12)) {
+            toastr.error('Длина ИНН составляет 10-12 символов. Текущая: ' + innInput.value.length)
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/organizations/createOrganization', currentDomain);
+        url.searchParams.append('title', titleInput.value);
+        url.searchParams.append('inn', innInput.value);
+        url.searchParams.append('is_competitor', 'True');
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function () {
+                location.reload()
+            },
+            error: function (data) {
+
+                toastr.error(data.responseJSON.detail)
+                submitButton.classList.remove('disabled');
+            }
+        });
+
+    });
+</script>
+
+<!-- Connect to Org -->
+<script>
+    document.getElementById('connect-org-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        const codeInput = document.getElementById('org-code');
+
+        if ((codeInput.value.length !== 11)) {
+            toastr.error('Длина кода приглашения должна составлять 9 символов')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/organizations/acceptInvitation', currentDomain);
+        url.searchParams.append('code', codeInput.value);
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail);
+                submitButton.classList.remove('disabled');
+            }
+        });
+
+    });
+</script>
+
+<!-- Logout -->
+<script>
+
+    function logout() {
+        $.ajax({
+            url: '/auth/logout',
+            method: 'get',
+
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail);
+            }
+        });
+    }
+
+</script>
+
+<!-- Get Mine Orgs -->
+<script>
+    var currentPage = window.location.pathname;
+
+    $(document).ready(function () {
+
+        var orgsMine = $('#orgs-mine');
+        var orgsC = $('#orgs-competitors');
+        var orgMenu = [
+            {'menuItemTitle': 'Управление', 'menuItemHref': 'dashboard'},
+            {'menuItemTitle': 'Товары', 'menuItemHref': 'products'},
+            {'menuItemTitle': 'Задачи на выкуп', 'menuItemHref': 'tasks'},
+            {'menuItemTitle': 'Отзывы', 'menuItemHref': 'reviews'},
+            {'menuItemTitle': 'Статусы заказов WB', 'menuItemHref': 'orders'},
+            {'menuItemTitle': 'Кошелек', 'menuItemHref': 'wallet'},
+            //{'menuItemTitle': 'Реферальная программа', 'menuItemHref': 'loyalty'},
+        ]
+
+        $.ajax({
+
+            url: '/organizations/readOrganizations',
+            type: 'GET',
+
+            success: function (data) {
+
+                data.forEach(function (data) {
+
+                    if (data.is_competitor === false) {
+
+
+                        if (data.status == 1 || data.status == 2 || data.status == 3) {
+                            var menuItem = $('<li>').addClass('menu-item');
+                            var menuItemA = $('<a>').attr({
+                                href: 'javascript:;',
+                                class: 'menu-link menu-toggle'
+                            })
+                            var menuIcon = $('<i>').addClass('menu-icon tf-icons bx bx-group');
+                            var menuTitle = $('<div>').addClass('text-truncate').attr('data-i18n', data).text(data.title);
+                            menuItemA.append(menuIcon, menuTitle);
+
+
+                            var menuSub = $('<ul>').addClass('menu-sub');
+
+                            orgMenu.forEach(function (orgMenu) {
+
+                                var ItemHREF = '/organization/' + orgMenu.menuItemHref + '/' + data.id
+                                var menuSubItemClass = 'menu-item'
+
+                                if (ItemHREF === currentPage) {
+                                    menuItem.addClass('open active')
+                                    menuSubItemClass = 'menu-item active'
+                                }
+
+                                var menuSubItem = $('<li>').addClass(menuSubItemClass);
+
+                                var menuSubA = $('<a>').attr({
+                                    href: ItemHREF,
+                                    class: 'menu-link'
+                                });
+
+                                var menuSubDiv = $('<div>').addClass('text-truncate').text(orgMenu.menuItemTitle);
+
+                                menuSubA.append(menuSubDiv);
+                                menuSubItem.append(menuSubA);
+                                menuSub.append(menuSubItem)
+
+                            })
+
+                            menuItem.append(menuItemA, menuSub);
+                            orgsMine.after(menuItem);
+
+                        }
+                    }
+
+                })
+
+
+                data.forEach(function (data) {
+
+                    if (data.is_competitor === true) {
+
+                        if (data.status == 1 || data.status == 2 || data.status == 3) {
+                            var menuItem = $('<li>').addClass('menu-item');
+                            var menuItemA = $('<a>').attr({
+                                href: 'javascript:;',
+                                class: 'menu-link menu-toggle'
+                            })
+                            var menuIcon = $('<i>').addClass('menu-icon tf-icons bx bx-trending-down');
+                            var menuTitle = $('<div>').addClass('text-truncate').attr('data-i18n', data).text(data.title);
+                            menuItemA.append(menuIcon, menuTitle);
+
+
+                            var menuSub = $('<ul>').addClass('menu-sub');
+
+                            orgMenu.forEach(function (orgMenu) {
+
+                                var ItemHREF = '/organization/' + orgMenu.menuItemHref + '/' + data.id
+                                var menuSubItemClass = 'menu-item'
+
+                                if (ItemHREF === currentPage) {
+                                    menuItem.addClass('open active')
+                                    menuSubItemClass = 'menu-item active'
+                                }
+
+                                var menuSubItem = $('<li>').addClass(menuSubItemClass);
+
+                                var menuSubA = $('<a>').attr({
+                                    href: ItemHREF,
+                                    class: 'menu-link'
+                                });
+
+                                var menuSubDiv = $('<div>').addClass('text-truncate').text(orgMenu.menuItemTitle);
+
+                                menuSubA.append(menuSubDiv);
+                                menuSubItem.append(menuSubA);
+                                menuSub.append(menuSubItem)
+
+                            })
+
+                            menuItem.append(menuItemA, menuSub);
+                            orgsC.after(menuItem);
+
+                        }
+                    }
+
+                })
+
+
+                document.getElementById('orgs1_ldr').style.display = 'none';
+                document.getElementById('orgs3_ldr').style.display = 'none';
+            },
+
+            error: function (data) {
+                document.getElementById('orgs1_ldr').style.display = 'none';
+                toastr.error('Ошибка загрузки организаций: ' + data.responseJSON.detail);
+            }
+        });
+
+    });
+</script>
+
+<!-- Get Other Orgs -->
+<script>
+    var currentPage = window.location.pathname;
+
+    $(document).ready(function () {
+
+        var orgsOther = $('#orgs-other');
+
+        function getBitValue(number, bitPosition) {
+            return (number >> bitPosition) & 1;
+        }
+
+        $.ajax({
+
+            url: '/organizations/readUserMemberships',
+            type: 'GET',
+
+            success: function (data) {
+
+                data.forEach(function (data) {
+
+                    if ((data.status === 1) && (data.organization.status === 1 || data.organization.status === 2 || data.organization.status === 3)) {
+
+                        var menuItem = $('<li>').addClass('menu-item');
+                        var menuItemA = $('<a>').attr({
+                            href: 'javascript:;',
+                            class: 'menu-link menu-toggle'
+                        })
+                        var menuIcon = $('<i>').addClass('menu-icon tf-icons bx bx-group');
+                        var menuTitle = $('<div>').addClass('text-truncate').attr('data-i18n', data).text(data.organization.title);
+                        menuItemA.append(menuIcon, menuTitle);
+
+
+                        var menuSub = $('<ul>').addClass('menu-sub');
+
+                        var orgMenu = []
+
+                        if (getBitValue(data.level, 1) === 1) {
+                            orgMenu.push({'menuItemTitle': 'Товары', 'menuItemHref': 'products'})
+                        }
+
+                        if (getBitValue(data.level, 2) === 1) {
+                            orgMenu.push({'menuItemTitle': 'Задачи на выкуп', 'menuItemHref': 'tasks'})
+                        }
+
+                        if (getBitValue(data.level, 3) === 1) {
+                            orgMenu.push({'menuItemTitle': 'Отзывы', 'menuItemHref': 'reviews'})
+                        }
+
+                        if (getBitValue(data.level, 4) === 1) {
+                            orgMenu.push({'menuItemTitle': 'Статусы заказов WB', 'menuItemHref': 'orders'})
+                        }
+
+                        if (getBitValue(data.level, 5) === 1) {
+                            orgMenu.push({'menuItemTitle': 'Кошелек', 'menuItemHref': 'wallet'})
+                        }
+
+                        orgMenu.forEach(function (orgMenu) {
+
+                            var ItemHREF = '/organization/' + orgMenu.menuItemHref + '/' + data.organization.id
+
+                            var menuSubItemClass = 'menu-item'
+
+                            if (ItemHREF === currentPage) {
+                                menuItem.addClass('open active')
+                                menuSubItemClass = 'menu-item active'
+                            }
+
+                            var menuSubItem = $('<li>').addClass(menuSubItemClass);
+
+                            ItemHREF = '/organization/' + orgMenu.menuItemHref + '/' + data.organization.id
+                            var menuSubA = $('<a>').attr({
+                                href: ItemHREF,
+                                class: 'menu-link'
+                            });
+
+                            var menuSubDiv = $('<div>').addClass('text-truncate').text(orgMenu.menuItemTitle);
+
+                            menuSubA.append(menuSubDiv);
+                            menuSubItem.append(menuSubA);
+                            menuSub.append(menuSubItem)
+
+                        })
+
+
+                        menuItem.append(menuItemA, menuSub);
+                        orgsOther.after(menuItem);
+
+
+                    }
+
+
+                });
+                document.getElementById('orgs2_ldr').style.display = 'none';
+            },
+            error: function (data) {
+                document.getElementById('orgs2_ldr').style.display = 'none';
+                toastr.error('Ошибка загрузки организаций: ' + data.responseJSON.detail);
+            }
+        });
+
+    });
+
+</script>
+
+<!-- Get Current Org -->
+<script>
+
+    function CTB(x) {
+        var add = 0
+        var freeze = 0
+        var spent = 0
+        var unfreezed = 0
+
+        for (var i in x) {
+            if (x[i].action_id === 1) {
+                add = add + x[i].amount
+            }
+            if (x[i].action_id === 2) {
+                freeze = freeze + x[i].amount
+            }
+            if (x[i].action_id === 3) {
+                spent = spent + x[i].amount
+            }
+            if (x[i].action_id === 4) {
+                unfreezed = unfreezed + x[i].amount
+            }
+        }
+
+        return add + unfreezed - freeze - spent
+
+    }
+
+    $(document).ready(function () {
+        var pname = window.location.pathname;
+        var currentPage = window.location.pathname;
+        var OrgID = pname.split('/')[3];
+
+        if (pname.includes('/organization')) {
+
+            $.ajax({
+                url: '/organizations/readOrganization?org_id=' + OrgID,
+                type: 'GET',
+                success: function (data) {
+
+                    $.ajax({
+
+                        url: '/payments/getBalance?org_id=' + OrgID,
+                        type: 'GET',
+
+                        success: function (data2) {
+                            var tt = data2
+
+                            if (tt == null) {
+                                tt = 0
+                            }
+
+                            var color = 'primary'
+                            if (tt < 0) {
+                                color = 'label-danger'
+                            }
+
+                            var info = '<span class="badge bg-label-primary me-2">' + data.title + '</span>' +
+                                '<a href="/organization/wallet/' + OrgID + '"><span class="me-2 badge bg-' + color + ' me-2">' + tt.toLocaleString('ru-RU') + ' ₽</span></a>'
+
+                            if (data.is_competitor) {
+                                document.getElementById('page_body').style.background = 'rgb(239,239,239)'
+                                info += '<span class="badge bg-label-secondary me-2">КОНКУРЕНТ</span>'
+                                if (pname.includes('reviews')) {
+                                    document.getElementById('rate_create').value = '1'
+                                }
+                            }
+
+                            var tni = document.getElementById('topnavicons')
+                            tni.innerHTML = info
+
+                        },
+
+                        error: function () {
+                            
+                            var info = '<span class="badge bg-label-primary me-2">' + data.title + '</span>'
+
+                            if (data.is_competitor) {
+                                document.getElementById('page_body').style.background = 'rgb(239,239,239)'
+                                info += '<span class="badge bg-label-secondary me-2">КОНКУРЕНТ</span>'
+                                if (pname.includes('reviews')) {
+                                    document.getElementById('rate_create').value = '1'
+                                }
+                            }
+
+                            var tni = document.getElementById('topnavicons')
+                            tni.innerHTML = info
+                        }
+                    });
+
+
+                }
+            })
+        }
+    })
+
+</script>
+
+<!-- Get Self Profile -->
+<script>
+
+    $.ajax({
+
+        url: '/auth/myProfile',
+        method: 'get',
+
+        success: function (data) {
+
+            document.getElementById('nav-name').innerText = data.name
+            document.getElementById('nav-username').innerText = data.username
+
+            var imageUrl = "{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}";
+            if (data.media !== null) {
+                imageUrl = 'https://storage.yandexcloud.net/greedybear/' + data.media
+            }
+
+            var imageElement1 = $('<img class="w-px-40 rounded-circle">');
+            var imageElement2 = $('<img class="w-px-40 rounded-circle">');
+
+            imageElement1.attr('src', imageUrl);
+            imageElement2.attr('src', imageUrl);
+
+            $('#my-avatar-nav').append(imageElement1);
+
+            $('#my-avatar-drop').append(imageElement2);
+
+            if (window.location.pathname.includes('profile')) {
+                loadProfile(data)
+            }
+
+            if (window.location.pathname.includes('settings')) {
+                loadSettings(data)
+            }
+
+        }
+
+    });
+
+</script>
+
+<!-- refresh datatable -->
+<script>
+    function dt_refresh(table_id, url) {
+        var table = $('#' + table_id).DataTable()
+        document.getElementById('page_ldr').style.display = 'block'
+        $('#rb').hide()
+        $('#rb1').hide()
+        $('#rb2').hide()
+        $('#rb3').hide()
+
+        $.ajax({
+            type: "GET",
+            url: url,
+            dataType: "json",
+            success: function (data) {
+                table.clear()
+                table.draw()
+                table.rows.add(data).draw();
+                document.getElementById('page_ldr').style.display = 'none'
+                $('#rb').show()
+                $('#rb1').show()
+                $('#rb2').show()
+                $('#rb3').show()
+                $('[data-bs-toggle="tooltip"]').tooltip();
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу')
+
+            }
+        })
+    }
+</script>
+
+{% block js %}{% endblock %}
+
+</body>
+</html>

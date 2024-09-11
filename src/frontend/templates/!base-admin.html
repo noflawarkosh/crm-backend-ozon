@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+
+<html lang="ru" class="light-style layout-navbar-fixed layout-menu-fixed layout-compact ">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+
+    <title>{% block title %}{% endblock %}GreedyBear</title>
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='assets/img/icons/logo.ico') }}"/>
+
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
+
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/boxicons.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/fontawesome.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/flag-icons.css') }}"/>
+
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/rtl/core.css') }}"
+          class="template-customizer-core-css"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/rtl/theme-default.css') }}"
+          class="template-customizer-theme-css"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/css/demo.css') }}"/>
+
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/flatpickr/flatpickr.css') }}"/>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+
+    <!-- Page CSS -->
+    {% block head %}{% endblock %}
+
+    <!-- Helpers -->
+    <script src="{{ url_for('static', path='assets/vendor/js/helpers.js') }}"></script>
+    <script src="{{ url_for('static', path='assets/js/config.js') }}"></script>
+</head>
+
+
+<body>
+<div class="layout-wrapper layout-content-navbar">
+    <div class="layout-container">
+
+        <!-- Side Menu -->
+        <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+
+            <div class="app-brand demo ">
+                <a href="" class="app-brand-link">
+                    <span class="app-brand-logo demo"></span>
+                    <span class="app-brand-text demo menu-text fw-bold ms-2">greedybear</span>
+                </a>
+                <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+                    <i class="bx bx-chevron-left bx-sm align-middle"></i>
+                </a>
+            </div>
+
+            <ul class="menu-inner py-1" id="aside-admin-menu">
+
+            </ul>
+
+        </aside>
+
+        <!-- Top Nav -->
+        <div class="layout-page">
+
+            <nav class="layout-navbar navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
+                 id="layout-navbar">
+
+                <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none ">
+                    <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+                        <i class="bx bx-menu bx-sm"></i>
+                    </a>
+                </div>
+
+                <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+                    <span class="badge bg-primary me-2" style="display:none" id="curr_balance"></span>
+                    <div class="navbar-nav align-items-center me-3 me-xl-0" id="c-users-div" style="display:none">
+                        <a href="/admin-tables/users" class="nav-link">
+                            <i class="bx bx-user-plus bx-sm"></i>
+                            <span class="badge bg-danger rounded-pill badge-notifications" id="c-users"
+                                  style="display:none"></span>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav align-items-center me-3 me-xl-0" id="c-orgs-div" style="display:none">
+                        <a href="/admin-tables/organizations" class="nav-link">
+                            <i class="bx bx-group bx-sm"></i>
+                            <span class="badge bg-danger rounded-pill badge-notifications" id="c-orgs"
+                                  style="display:none"></span>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav align-items-center me-3 me-xl-0" id="c-bills-div" style="display:none">
+                        <a href="/admin-tables/payments" class="nav-link">
+                            <i class="bx bx-credit-card-front bx-sm"></i>
+                            <span class="badge bg-danger rounded-pill badge-notifications" id="c-bills"
+                                  style="display:none"></span>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav align-items-center me-3 me-xl-0" id="c-reviews-div" style="display:none">
+                        <a href="/admin-tables/reviews" class="nav-link">
+                            <i class="bx bx-comment bx-sm"></i>
+                            <span class="badge bg-danger rounded-pill badge-notifications" id="c-reviews"
+                                  style="display:none"></span>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav align-items-center">
+                        <span id="page_timer"></span>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="admin_ldr"></span>
+                    </div>
+
+                    <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+
+                        <!-- User -->
+                        <li class="nav-item navbar-dropdown dropdown-user dropdown">
+
+                            <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);"
+                               data-bs-toggle="dropdown">
+                                <div class="avatar avatar-online" id="my-avatar-nav">
+                                    <img class="w-px-40 rounded-circle"
+                                         src="{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}">
+                                </div>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="javascript:">
+                                        <div class="d-flex">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="avatar avatar-online" id="my-avatar-drop">
+                                                    <img class="w-px-40 rounded-circle"
+                                                         src="{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}">
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <span class="fw-medium d-block" id="nav-name">Администратор</span>
+                                                <small class="text-muted" id="nav-username"></small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <div class="dropdown-divider"></div>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item" href="##" onclick="logout();">
+                                        <i class="bx bx-power-off me-2"></i>
+                                        <span class="align-middle">Выйти</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </div>
+
+
+            </nav>
+
+            <!-- Content -->
+            <div class="content-wrapper">
+                <div class="container-p-y" style="padding-left: 26px; padding-right: 26px">
+                    {% block content %}
+                    {% endblock %}
+                </div>
+                <div class="content-backdrop fade"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="layout-overlay layout-menu-toggle"></div>
+
+    <!-- Drag Target Area To SlideIn Menu On Small Screens -->
+    <div class="drag-target"></div>
+
+</div>
+
+<script src="{{ url_for('static', path='assets/js/app-user-view-account.js') }}"></script>
+
+<script src="{{ url_for('static', path='assets/vendor/libs/jquery/jquery.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/popper/popper.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/js/bootstrap.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/hammer/hammer.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/i18n/i18n.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/js/menu.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/moment/moment.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/flatpickr/flatpickr.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/main.js') }}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/3.3.4/jquery.inputmask.bundle.min.js"></script>
+
+<!-- const -->
+<script>
+
+
+    const FT = {
+        'password': 'Пароль',
+        'name': 'Имя',
+        'username': 'Логин',
+        'telnum': 'Телефон',
+        'post': 'Должность',
+        'surname': 'Фамилия',
+        'fathername': 'Отчество',
+        'media_id': 'Медиа',
+        'storage_href': 'Название в хранилище',
+        'title': 'Название',
+        'description': 'Описание',
+        'type': 'Тип',
+        'date': 'Дата',
+        'time_min_min_per_step': 'Минимальный шаг ячеек расписания',
+        'time_max_min_per_step': 'Максимальный шаг ячеек расписания',
+        'time_start': 'Время начала',
+        'time_end': 'Время окончания (идеальное)',
+        'time_first_point': 'Время первой точки расширения',
+        'time_second_point': 'Время последней точки расширения',
+        'schedule_id': 'Расписание',
+        'is_active': 'Активный',
+        'number': 'Номер',
+        'load_percent': 'Нагрузка',
+        'load_j_min': 'J мин',
+        'load_j_max': 'J макс',
+        'load_l_min': 'L мин',
+        'load_l_max': 'L макс',
+        'load_t_min': 'T мин',
+        'load_t_max': 'T макс',
+        'load_m': 'M',
+        'address': 'Адрес',
+        'district': 'Район',
+        'contractor_id': 'Подрядчик',
+        'order_id': 'Заказ',
+        'wb_uuid': 'ID заказа на WB',
+        'wb_keyword': 'Ключевой запрос',
+        'dt_ordered': 'Дата заказа',
+        'dt_delivered': 'Дата доставки',
+        'dt_collected': 'Дата получения',
+        'product_id': 'Продукт',
+        'size_id': 'Размер',
+        'account_id': 'Аккаунт',
+        'code': 'Код приглашения',
+        'level': 'Уровень',
+        'created': 'Создано',
+        'expires': 'Истекает',
+        'amount': 'Количество',
+        'org_id': 'Организация',
+        'login_date': 'Дата входа',
+        'user_id': 'Пользователь',
+        'al': 'Дни жизни аккаунта',
+        'lo': 'Макс кол-во дней с последнего заказа на аккаунте',
+        'k_format': 'Формат записи даты в ячейку K листа плана',
+        'wb_price': 'Цена',
+        'wb_status': 'Статус',
+        'is_cancelled': 'Отменен',
+        'dt_planed': 'Дата планирования',
+        'wb_article': 'Артикул',
+        'wb_title': 'Название',
+        'bank': 'Банк',
+        'recipient': 'Получатель',
+        'bill': 'Номер счета',
+        'last_update': 'Последнее обновление',
+        'match': 'Соответствие',
+        'text': 'Текст',
+        'status': 'Статус',
+        'load_i': 'I',
+        'is_public': 'Публичный',
+        'price_buy': 'Стоимость выкупа',
+        'price_collect': 'Стоимость логистики',
+        'price_review': 'Стоимость отзыва',
+        'price_review_media': 'Стоимость отзыва с медиа',
+        'price_review_request': 'Стоимость отзыва по запросу',
+        'price_box': 'Стоимость коробки',
+        'price_pass': 'Стоимость проезда на склад',
+        'price_percent': 'Процент комиссии',
+        'price_percent_limit': 'Лимит стоимости товара без комиссии',
+        'price_percent_penalty': 'Процент комиссии при оплате',
+        'server_id': 'Сервер',
+        'address_id': 'Адрес ПВЗ',
+        'reg_date': 'Дата регистрации',
+        'created_at': 'Создано',
+        'level_id': 'Схема стоимости услуг',
+        'balance_limit': 'Лимит баланса',
+        'inn': 'ИНН',
+        'strict_match': 'Подобрать аккаунт под размер',
+        'full_match': 'Полное совпадение строк при проверке статуса',
+        'status_number': 'номер статуса заказа',
+        'pay_product': 'Списать стоиомть товара',
+        'refund_product': 'Вернуть стоимость товара',
+        'refund_services': 'Вернуть стоимость услуг',
+        'status_id': 'Статус',
+        'is_success': 'Успешный',
+        'is_express': 'Срочный',
+        'is_competitor': 'Конкурент',
+        'unfreeze_product': 'Разморозить стоимость товара',
+        'priority': 'Приоритет',
+    }
+
+    const CURRENT_LOCATION = window.location.pathname
+    const RETURNS = {
+        '/admin-create/contractors': '/admin-tables/contractors',
+        '/admin-edit/contractors': '/admin-tables/contractors',
+        '/admin-edit/servers': '/admin-tables/servers',
+        '/admin-edit/servercontractors': '/admin-tables/servers',
+        '/admin-edit/schedules': '/admin-tables/servers',
+        '/admin-create/addresses': '/admin-tables/addresses',
+        '/admin-edit/addresses': '/admin-tables/addresses',
+        '/admin-edit/orders': '/admin-tables/orders',
+        '/admin-edit/accounts': '/admin-tables/accounts',
+        '/admin-edit/reviews': '/admin-tables/reviews',
+        '/admin-create/prices': '/admin-tables/prices',
+        '/admin-edit/prices': '/admin-tables/prices',
+        '/admin-edit/banks': '/admin-tables/banks',
+        '/admin-create/banks': '/admin-tables/banks',
+        '/admin-edit/organizations': '/admin-tables/organizations',
+        '/admin-edit/users': '/admin-tables/users',
+        '/admin-create/admins': '/admin-tables/admins',
+        '/admin-edit/admins': '/admin-tables/admins',
+        '/admin-create/usersessions': '/admin-tables/usersessions',
+        '/admin-edit/usersessions': '/admin-tables/usersessions',
+        '/admin-create/adminsessions': '/admin-tables/adminsessions',
+        '/admin-edit/adminsessions': '/admin-tables/adminsessions',
+    }
+
+    const ASIDE = [
+        {
+            'title': 'Выкупы',
+            'items': [
+                {
+                    'title': 'Серверы',
+                    'href': '/admin-tables/servers',
+                    'icon': 'bx bxs-server',
+                    'level': 1,
+                },
+                {
+                    'title': 'Планирование',
+                    'href': '/admin-scripts/planner',
+                    'icon': 'bx bx-table',
+                    'level': 2,
+                }
+            ]
+        },
+        {
+            'title': 'Логистика',
+            'items': [
+                {
+                    'title': 'Адреса ПВЗ',
+                    'href': '/admin-tables/addresses',
+                    'icon': 'bx bx-building',
+                    'level': 4,
+                },
+                {
+                    'title': 'Подрядчики',
+                    'href': '/admin-tables/contractors',
+                    'icon': 'bx bxs-truck',
+                    'level': 8,
+                },
+            ]
+        },
+        {
+            'title': 'Товары, заказы',
+            'items': [
+                {
+                    'title': 'Заказы',
+                    'href': '/admin-tables/orders',
+                    'icon': 'bx bx-cart',
+                    'level': 16,
+                },
+                {
+                    'title': 'Аккаунты',
+                    'href': '/admin-tables/accounts',
+                    'icon': 'bx bx-phone',
+                    'level': 32,
+                },
+                {
+                    'title': 'Товары',
+                    'href': '/admin-tables/products',
+                    'icon': 'bx bx-box',
+                    'level': 64,
+                },
+                {
+                    'title': 'Отзывы',
+                    'href': '/admin-tables/reviews',
+                    'icon': 'bx bx-comment',
+                    'level': 128,
+                },
+            ]
+        },
+        {
+            'title': 'Пользователи',
+            'items': [
+                {
+                    'title': 'Касса',
+                    'href': '/admin-tables/payments',
+                    'icon': 'bx bx-money',
+                    'level': 256,
+                },
+                {
+                    'title': 'Услуги',
+                    'href': '/admin-tables/prices',
+                    'icon': 'bx bx-list-check',
+                    'level': 512,
+                },
+                {
+                    'title': 'Банки',
+                    'href': '/admin-tables/banks',
+                    'icon': 'bx bxs-bank',
+                    'level': 1024,
+                },
+                {
+                    'title': 'Организации',
+                    'href': '/admin-tables/organizations',
+                    'icon': 'bx bxs-group',
+                    'level': 2048,
+                },
+                {
+                    'title': 'Пользователи',
+                    'href': '/admin-tables/users',
+                    'icon': 'bx bx-user',
+                    'level': 4096,
+                },
+            ]
+        },
+        {
+            'title': 'Система',
+            'items': [
+                {
+                    'title': 'Администраторы',
+                    'href': '/admin-tables/admins',
+                    'icon': 'bx bx-shield',
+                    'level': 16384,
+                },
+                {
+                    'title': 'Журнал аудита',
+                    'href': '/admin-tables/logs',
+                    'icon': 'bx bx-book',
+                    'level': 1048576,
+                },
+                {
+                    'title': 'Хранилище',
+                    'href': 'https://console.yandex.cloud/folders/b1g9dkaq87etb8tm9bhj/storage/buckets/greedybear',
+                    'icon': 'bx bx-hdd',
+                    'level': 32768,
+                },
+                {
+                    'title': 'Сессии пользователей',
+                    'href': '/admin-tables/usersessions',
+                    'icon': 'bx bx-laptop',
+                    'level': 65536,
+                },
+                {
+                    'title': 'Сессии администраторов',
+                    'href': '/admin-tables/adminsessions',
+                    'icon': 'bx bx-laptop',
+                    'level': 131072,
+                },
+            ]
+        },
+    ]
+
+    const TITLES = {
+        'servers': 'Серверы',
+        'planner': 'Планирование',
+        'addresses': 'Адреса',
+        'contractors': 'Подрядчики',
+        'orders': 'Заказы',
+        'accounts': 'Аккаунты',
+        'products': 'Товары',
+        'reviews': 'Отзывы',
+        'payments': 'Касса',
+        'prices': 'Схемы расчета стоимости',
+        'banks': 'Банки',
+        'organizations': 'Организации',
+        'users': 'Пользователи',
+        'admins': 'Администраторы',
+        'storage': 'Хранилище',
+        'logs': 'Журнал аудита',
+        'usersessions': 'Сессии пользователей',
+        'adminsessions': 'Сессии администраторов',
+        'settings': 'Настройки',
+        'owner_id': 'Владелец',
+        'pickerstatuses': 'Статусы заказов',
+        'address_statuses': 'Cтатусы адресов',
+        'pickerorgs': 'Настройки организаций'
+
+    }
+
+    const UEF = [
+        'id',
+        'owner_id'
+    ]
+
+    const UPF = [
+        'password',
+        'token',
+    ]
+
+    const bools = [
+        'is_active',
+        'full_match',
+        'pay_product',
+        'refund_product',
+        'refund_services',
+        'is_public',
+        'is_express',
+        'strict_match',
+        'is_competitor',
+        'is_success',
+        'unfreeze_product'
+
+    ]
+
+    // deep load
+    const FML = {
+        'media_id': ['storage', 'title'],
+        'schedule_id': ['schedules', 'title'],
+        'contractor_id': ['contractors', 'name'],
+        'server_id': ['servers', 'name'],
+        'address_id': ['addresses', 'address'],
+        'org_id': ['organizations', 'title'],
+        'size_id': ['sizes', 'wb_size_name'],
+        'product_id': ['products', 'wb_title'],
+        'account_id': ['accounts', 'number'],
+        'level_id': ['levels', 'title'],
+        'status_id': ['address_statuses', 'title'],
+        'user_id': ['users', 'username'],
+
+    }
+</script>
+
+<!-- profile and aside -->
+<script>
+    $.ajax({
+        url: '/admin/profile',
+        method: 'get',
+
+        success: function (data) {
+
+            document.getElementById('nav-name').innerText = data.name + ' ' + data.surname[0] + '.'
+            document.getElementById('nav-username').innerHTML = '<span class="badge bg-label-secondary">' + data.post + '</span>'
+
+            var sideMenu = ''
+            for (var i = 0; i < ASIDE.length; i++) {
+
+                var access = false
+
+                for (var j = 0; j < ASIDE[i].items.length; j++) {
+                    if (ASIDE[i].items[j].level & data.level) {
+                        access = true
+                        break
+                    }
+                }
+
+                if (access === true) {
+                    sideMenu += '' +
+                        '<li class="menu-header small text-uppercase">' +
+                        '   <span class="menu-header-text">' + ASIDE[i].title + '</span>' +
+                        '</li>'
+
+                    for (j = 0; j < ASIDE[i].items.length; j++) {
+                        var href = ASIDE[i].items[j].href ? ASIDE[i].items[j].href : 'javascript:toastr.error("Раздел не найден")';
+                        var icon = ASIDE[i].items[j].icon ? ASIDE[i].items[j].icon : 'bx bx-list';
+                        var is_active = window.location.pathname === ASIDE[i].items[j].href ? 'active' : '';
+
+                        if (ASIDE[i].items[j].level & data.level) {
+                            sideMenu += '' +
+                                '<li class="menu-item ' + is_active + '">' +
+                                '   <a href="' + href + '" class="menu-link">' +
+                                '       <i class="menu-icon tf-icons ' + icon + '"></i>' +
+                                '       <div class="text-truncate">' + ASIDE[i].items[j].title + '</div>' +
+                                '   </a>' +
+                                '</li>'
+                        }
+                    }
+                }
+            }
+            document.getElementById('aside-admin-menu').innerHTML = sideMenu
+            document.getElementById('admin_ldr').style.display = 'none'
+        },
+
+        error: function (data) {
+            toastr.error(data.responseJSON.detail);
+        }
+    });
+
+</script>
+
+<!-- logout -->
+<script>
+    function logout() {
+        $.ajax({
+            url: '/admin/logout',
+            method: 'get',
+
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail);
+            }
+        });
+    }
+</script>
+
+<!-- counters -->
+<script>
+
+    $.ajax({
+        url: '/admin/get/users',
+        method: 'get',
+
+        success: function (data) {
+            var amount = 0
+
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].status === 1) {
+                    amount += 1
+                }
+            }
+            if (amount > 0) {
+                $('#c-users-div').show()
+                $('#c-users').show()
+                $('#c-users').html(amount)
+            }
+
+        },
+    });
+
+    $.ajax({
+        url: '/admin/get/orgs',
+        method: 'get',
+
+        success: function (data) {
+            var amount = 0
+
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].status === 1) {
+                    amount += 1
+                }
+            }
+
+            if (amount > 0) {
+                $('#c-orgs-div').show()
+                $('#c-orgs').show()
+                $('#c-orgs').html(amount)
+            }
+        },
+    });
+
+    $.ajax({
+        url: '/admin/get/bills',
+        method: 'get',
+
+        success: function (data) {
+            var amount = 0
+
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].status_id === 2 || data[i].status_id === 6) {
+                    amount += 1
+                }
+            }
+
+            if (amount > 0) {
+                $('#c-bills-div').show()
+                $('#c-bills').show()
+                $('#c-bills').html(amount)
+            }
+        },
+    });
+
+    $.ajax({
+        url: '/admin/get/express_reviews',
+        method: 'get',
+
+        success: function (data) {
+
+            var amount = data.length
+
+            if (amount > 0) {
+                $('#c-reviews-div').show()
+                $('#c-reviews').show()
+                $('#c-reviews').html(amount)
+            }
+        },
+    });
+
+    $.ajax({
+        url: '/admin/getBalance',
+        method: 'get',
+
+        success: function (data) {
+            var i = document.getElementById('curr_balance')
+            i.innerHTML = data.toLocaleString('ru-RU') + ' ₽'
+            i.style.display = 'block'
+
+        },
+    });
+</script>
+
+<!-- refresh datatable -->
+<script>
+    function dt_refresh(table_id, url, callback) {
+        var table = $('#' + table_id).DataTable()
+        document.getElementById('admin_ldr').style.display = 'block'
+
+        $.ajax({
+            type: "GET",
+            url: url,
+            dataType: "json",
+            success: function (data) {
+                table.clear()
+                table.draw()
+                table.rows.add(data).draw();
+                document.getElementById('admin_ldr').style.display = 'none'
+                if (typeof callback === 'function') {
+                    callback(data)
+                }
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу')
+
+            }
+        })
+
+    }
+</script>
+
+
+{% block js %}{% endblock %}
+
+</body>
+</html>

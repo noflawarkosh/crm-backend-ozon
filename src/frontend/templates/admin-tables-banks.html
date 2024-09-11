@@ -1,0 +1,169 @@
+{% extends "!base-admin.html" %}
+{% block title %}Банки | {% endblock %}
+{% block css %}
+
+{% endblock %}
+
+{% block js %}
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script>
+
+    function updateOrgStatus(org_id, status_id) {
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({banks: [{id: org_id, is_active: status_id}]}),
+            dataType: "json",
+            contentType: "application/json",
+            success: function () {
+                var msg = 'Данные обновлены'
+
+                if (status_id === true) {
+                    msg = 'Банк активен'
+                }
+
+                if (status_id === false) {
+                    msg = 'Банк неактивен'
+                }
+
+                toastr.success(msg)
+                dt_refresh('dt_orgs', '/admin/get/banks')
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/banks',
+        success: function (data) {
+
+            $('#dt_orgs').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {data: 'priority'},
+                    {data: 'bank'},
+                    {data: 'recipient'},
+                    {data: 'number'},
+                    {data: 'bill'},
+                    {data: 'description'},
+                    {
+                        "data": "is_active",
+                        "render": function (data, type, row) {
+
+                            var color = 'danger'
+                            var txt = 'Нет'
+
+                            if (data === true) {
+                                color = 'success'
+                                txt = 'Да'
+                            }
+
+                            return '<span class="badge bg-label-' + color + '">' + txt + '</span>'
+                        }
+                    },
+
+                    {
+                        "data": "is_active",
+                        "render": function (data, type, row) {
+
+                            var edit = '<a href="/admin-edit/banks/' + row.id + '"><i class="bx bx-edit-alt"></i></a>'
+
+                            if (data === true) {
+                                return edit + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + false + ')"><i class="bx bx-block"></i></a>'
+                            }
+
+                            if (data === false) {
+                                return edit + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + true + ')"><i class="bx bx-check"></i></a>'
+                            }
+                        }
+                    }
+                ],
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+
+                "order": [[0, "desc"]]
+            });
+
+        },
+        error: function () {
+            toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+        }
+    })
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Банки
+                        <a href="javascript:dt_refresh('dt_orgs', '/admin/get/banks')"><i
+                                class="bx bx-refresh"></i></a>
+                        <a href="/admin-create/banks"><i
+                                class="bx bx-plus"></i></a>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-datatable p-4">
+                    <table id="dt_orgs" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Приоритет</th>
+                            <th>Банк</th>
+                            <th>Получатель</th>
+                            <th>Номер телефона</th>
+                            <th>Номер счета</th>
+                            <th>Описание</th>
+                            <th>Активный</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

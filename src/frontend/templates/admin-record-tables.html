@@ -1,0 +1,140 @@
+{% extends "!base-admin.html" %}
+{% block js %}
+<script>
+
+    var arr = window.location.href.split('/')
+    var table = arr[arr.length - 1]
+    var thead = ''
+    var tbody = ''
+
+    var card_title = document.getElementById('card_title')
+    var card_subtitle = document.getElementById('card_subtitle')
+    var card_table = document.getElementById('datatable')
+
+    card_title.innerHTML = (TITLES[table] ? TITLES[table] : table) + card_title.innerHTML
+    document.title = (TITLES[table] ? TITLES[table] : table) + ' | ' + document.title
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/' + table,
+        dataType: "json",
+
+        success: function (data) {
+
+            $.ajax({
+                type: "GET",
+                url: '/admin/fields/' + table,
+                dataType: "json",
+                success: function (fields) {
+
+                    document.getElementById('btn_add').setAttribute('href', '/admin-create/' + table)
+                    document.getElementById('btn_refresh').setAttribute('href', "javascript:dt_refresh('datatable', '/admin/get/" + table + "');")
+
+                    var card_table_columns = []
+
+                    Object.keys(fields).forEach(function (field) {
+                        if (UPF.includes(field)) {
+                            return
+                        }
+                        thead += '<th>' + (FT.hasOwnProperty(field) ? FT[field] : field) + '</th>'
+
+                        card_table_columns.push({
+                            render: function (cell, type, row) {
+
+                                if (row[field] === null) {
+                                    return '—'
+                                }
+
+                                if (row[field] === true) {
+                                    return 'Да'
+                                }
+
+                                if (row[field] === false) {
+                                    return 'Нет'
+                                }
+
+                                if (field === 'id') {
+                                    return '#' + row[field]
+                                }
+
+                                if (fields[field] === 'DATETIME') {
+                                    return moment(row[field]).format('DD.MM.YYYY HH:mm')
+                                }
+
+                                return row[field]
+                            }
+                        })
+                    })
+
+                    thead += '<th>Действия</th>'
+                    card_table_columns.push({
+                        render: function (data, type, row) {
+                            return '' +
+                                '<a href="/admin-edit/' + table + '/' + row.id + '"><i class="bx bx-edit-alt"></i></a>'
+
+                        }
+                    })
+
+                    card_table.innerHTML = '<thead><tr>' + thead + '</tr></thead>'
+
+                    $('#datatable').DataTable({
+                        data: data,
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "searching": true,
+                        "ordering": true,
+                        "columns": card_table_columns,
+                        "order": [[0, "desc"]]
+                    })
+
+                    document.getElementById('tbl-ldr').style.display = 'none'
+
+                },
+                error: function () {
+                    toastr.error('Ошибка получения полей')
+                    document.getElementById('tbl-ldr').style.display = 'none'
+
+                }
+            })
+        },
+
+        error: function () {
+            toastr.error('Ошибка получения данных')
+            document.getElementById('tbl-ldr').style.display = 'none'
+
+        }
+    })
+
+
+
+</script>
+
+{% endblock %}
+
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0" id="card_title">
+                        <a id="btn_refresh">
+                            <i class="bx bx-refresh"></i>
+                        </a>
+                        <a id="btn_add">
+                            <i class="bx bx-plus"></i>
+                        </a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="tbl-ldr"></span>
+                    </h5>
+                    <small class="card-subtitle" id="card_subtitle"></small>
+                </div>
+                <div class="card-body table-responsive">
+                    <table id="datatable" class="datatables-ajax table table-bordered dataTable no-footer"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

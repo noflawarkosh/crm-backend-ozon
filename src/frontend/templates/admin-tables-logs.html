@@ -1,0 +1,287 @@
+{% extends "!base-admin.html" %}
+{% block title %}Журнал аудита | {% endblock %}
+{% block css %}
+
+{% endblock %}
+
+{% block js %}
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script>
+
+    var tables = {
+        'orders_address': 'Адреса',
+        'orders_order': 'Заказы',
+        'products_review': 'Отзывы',
+        'products_product': 'Товары',
+        'products_product_size': 'Размеры',
+    }
+
+    var actions = {
+        1: 'Создание',
+        2: 'Редактирование',
+        3: 'Удаление',
+    }
+
+    var modals = ''
+    var lines = {}
+    var admins = {}
+    var users = {}
+
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/adminsessions_full',
+        success: function (data) {
+            for (var i = 0; i < data.length; i++) {
+                admins[data[i].id] = data[i]
+            }
+        },
+        error: function () {
+            toastr.error('Ошибка получения администраторов')
+
+        }
+    })
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/usersessions_full',
+        success: function (data) {
+            for (var i = 0; i < data.length; i++) {
+                users[data[i].id] = data[i]
+            }
+        },
+        error: function () {
+            toastr.error('Ошибка получения пользователей')
+
+        }
+    })
+
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/logs',
+        success: function (data) {
+
+            for (var i = 0; i < data.length; i++) {
+                lines[data[i].id] = {
+                    'old': data[i].old_data,
+                    'new': data[i].new_data,
+                }
+            }
+
+            $('#dt_logs').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {
+                        data: 'date',
+                        render: function (data, type, row) {
+                            return moment(data).format('DD.MM.YYYY HH:mm:ss')
+                        }
+                    },
+                    {
+                        data: 'session_id',
+                        render: function (data, type, row) {
+
+                            return '<span><a href="javascript:" onclick="showSession(' + data + ',' + row.is_admin + ')" data-bs-toggle="modal" data-bs-target="#expand_data_sessions">просмотр</a></span>'
+
+                        }
+                    },
+                    {
+                        data: 'table',
+                        "render": function (data, type, row) {
+                            if (tables[data] !== undefined) {
+                                return tables[data]
+                            }
+                            return data
+                        }
+                    },
+                    {
+                        data: 'record_id'
+                    },
+                    {
+                        data: 'action',
+                        render: function (data, type, row) {
+                            return actions[data]
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return '<span><a href="javascript:" onclick="showEdits(' + row.id + ')" data-bs-toggle="modal" data-bs-target="#expand_data">просмотр</a></span>'
+                        }
+                    }
+
+                ],
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 3, 4, 5];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+
+                "order": [[0, "desc"]]
+            });
+
+            document.getElementById('modals').innerHTML = modals
+
+        },
+        error: function () {
+            toastr.error('Ошибка получения пользователей')
+
+        }
+    })
+
+
+    function showEdits(id) {
+        var edits_div = document.getElementById('edits_all')
+
+        var before = lines[id].old
+        var after = lines[id].new
+
+        var before_data = ''
+        for (var key in before) {
+            before_data += '<b>' + key + '</b>: ' + before[key] + '<br>'
+        }
+
+        var after_data = ''
+        for (var key in after) {
+            after_data += '<b>' + key + '</b>: ' + after[key] + '<br>'
+        }
+
+        edits_div.innerHTML = 'До:<br>' + before_data + '<br><br>После:<br>' + after_data + '<br><br>'
+
+    }
+
+
+    function showSession(id, is_admin) {
+        var session_div = document.getElementById('session_info')
+        var session_data = {}
+        var user_data = {}
+
+        if (is_admin === true) {
+            session_data = {
+                'id': id,
+                'ip': admins[id].ip,
+                'useragent': admins[id].user_agent,
+                'Вход ': moment(admins[id].date).format('DD.MM.YYYY HH:mm:ss'),
+                'Истекает': moment(admins[id].expires).format('DD.MM.YYYY HH:mm:ss'),
+            }
+
+            user_data = {
+                'id': admins[id].admin.id,
+                'username': admins[id].admin.username,
+            }
+
+        } else {
+            session_data = {
+                'id': id,
+                'ip': users[id].ip,
+                'useragent': users[id].useragent,
+                'Вход ': moment(users[id].created).format('DD.MM.YYYY HH:mm:ss'),
+                'Истекает': moment(users[id].expires).format('DD.MM.YYYY HH:mm:ss'),
+            }
+
+            user_data = {
+                'id': users[id].user.id,
+                'username': users[id].user.username,
+            }
+        }
+
+        var session_string = ''
+        for (var key in session_data) {
+            session_string += '<b>' + key + '</b>: ' + session_data[key] + '<br>'
+        }
+
+        var user_string = ''
+        for (var key in user_data) {
+            user_string += '<b>' + key + '</b>: ' + user_data[key] + '<br>'
+        }
+
+        session_div.innerHTML = 'Сессия:<br>' + session_string + '<br><br>Пользователь:<br>' + user_string + '<br><br>'
+
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Журнал аудита
+
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-datatable table-responsive p-4">
+                    <table id="dt_logs" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Дата</th>
+                            <th>Пользователь</th>
+                            <th>Таблица</th>
+                            <th>Номер записи</th>
+                            <th>Действие</th>
+                            <th>Изменения</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="expand_data" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body" id="modal_edits_body">
+                <div id="edits_all">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="expand_data_sessions" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body" id="modal_session_body">
+                <div id="session_info">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

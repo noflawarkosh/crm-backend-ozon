@@ -1,0 +1,389 @@
+{% extends "!base.html" %}
+{% block title %}Товары{% endblock %}
+
+{% block head %}
+
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/apex-charts/apex-charts.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/css/pages/card-analytics.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+
+{% endblock %}
+
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/app-ecommerce-dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<script>
+
+    const url = window.location.href;
+    var arr = url.split('/')
+    var org_id = arr[arr.length - 1]
+
+    function setSizeStatus(element) {
+        if (element.checked) {
+            $.ajax({
+
+                url: '/products/updateSize?status=true&size_id=' + element.id,
+                method: 'post',
+
+                success: function (data) {
+                    toastr.success('Размер включен')
+                },
+                error: function () {
+                    toastr.error('Ошибка включения размера. Обновите страницу')
+                }
+            })
+        } else {
+            $.ajax({
+
+                url: '/products/updateSize?status=false&size_id=' + element.id,
+                method: 'post',
+
+                success: function (data) {
+                    toastr.success('Размер выключен')
+                },
+                error: function () {
+                    toastr.error('Ошибка выключения размера. Обновите страницу')
+                }
+            })
+        }
+    }
+
+    function disableProduct(id) {
+        if (confirm('Удалить товар #' + id)) {
+            document.getElementById('page_ldr').style.display = 'block'
+            $.ajax({
+
+                url: '/products/disable?product_id=' + id,
+                method: 'get',
+
+                success: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none'
+                    dt_refresh('dt_user_products', '/products/getOwned?org_id=' + org_id)
+                    toastr.success('Товар успешно удален')
+
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none'
+                    toastr.error('Ошибка удаления товара: ' + data.responseJSON.detail)
+                }
+            })
+        }
+    }
+
+    function refreshProduct(id) {
+        if (confirm('Обновить данные с OZON о товаре #' + id)) {
+
+            document.getElementById('page_ldr').style.display = 'block'
+            $.ajax({
+
+                url: '/products/refresh?product_id=' + id,
+                method: 'get',
+
+                success: function () {
+                    dt_refresh('dt_user_products', '/products/getOwned?org_id=' + org_id)
+                    toastr.success('Товар успешно обновлен. Обновление размеров отобразится после обновлении страницы')
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none'
+                    toastr.error('Ошибка обновления товара: ' + data.responseJSON.detail)
+                }
+            })
+        }
+    }
+
+    function saveBarcode(id) {
+
+        document.getElementById('page_ldr').style.display = 'block'
+        var code = document.getElementById('bc_inp_' + id)
+
+        if (code.value === '' || code.value.length < 1) {
+            document.getElementById('page_ldr').style.display = 'none'
+            toastr.error('Штрих-код не указан')
+            return
+        }
+
+        $.ajax({
+            url: '/products/barcode?product_id=' + id + '&barcode=' + code.value,
+            method: 'post',
+
+            success: function () {
+                //document.getElementById('bc_div_' + id).innerText = code.value
+                dt_refresh('dt_user_products', '/products/getOwned?org_id=' + org_id)
+                toastr.success('Штрих-код сохранен')
+            },
+            error: function (data) {
+                document.getElementById('page_ldr').style.display = 'none'
+                toastr.error('Ошибка сохранения штрих-кода: ' + data.responseJSON.detail)
+            }
+        })
+
+    }
+
+    $(document).ready(function () {
+
+        const url = window.location.href;
+        var arr = url.split('/')
+        var id = arr[arr.length - 1]
+        var modal = ''
+
+        function truncateString(str) {
+            if (str.length > 50) {
+                return str.slice(0, 50) + '...';
+            }
+            return str;
+        }
+
+
+        $.ajax({
+
+            url: '/products/getOwned?org_id=' + id,
+            method: 'get',
+
+            success: function (data) {
+
+                $('#dt_user_products').DataTable({
+                    "data": data,
+                    "paging": true,
+                    "pageLength": 10,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    "searching": true,
+                    "ordering": true,
+
+                    columns: [
+                        {
+                            data: 'id'
+                        },
+                        {
+                            render: function (data, type, row) {
+
+                                var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}"
+
+                                if (row.media !== null) {
+                                    avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.media
+                                }
+
+                                var wb_url = 'https://www.ozon.ru/product/' + row.ozon_article
+
+                                return '' +
+                                    '<div class="d-flex justify-content-start align-items-center product-name">' +
+                                    '   <div class="avatar-wrapper">' +
+                                    '       <div class="avatar avatar me-2 rounded-2 bg-label-secondary">' +
+                                    '           <img src="' + avatar_src + '">' +
+                                    '       </div>' +
+                                    '   </div>' +
+                                    '   <div class="d-flex flex-column">' +
+                                    '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '" title="' + row.ozon_title + '">' + truncateString(row.ozon_title) + '</a></h6>' +
+                                    '       <small class="text-muted text-truncate d-none d-sm-block">' + row.ozon_article + '</small>' +
+                                    '   </div>' +
+                                    '</div>'
+                            }
+                        },
+                        {
+                            data: 'ozon_size'
+                        },
+                        {
+                            data: 'ozon_price',
+                            render: function (data, type, row) {
+                                return '<b>' + data + ' ₽</b>'
+                            }
+                        },
+                        {
+                            data: 'barcode',
+                            render: function (data, type, row) {
+
+                                var bc_v = ''
+                                if (row.barcode !== null) {
+                                    bc_v = row.barcode
+                                }
+
+                                var barcode = '' +
+                                    '<div class="input-group input-group-sm" id="bc_div_' + row.id + '">\n' +
+                                    '          <input id="bc_inp_' + row.id + '" class="form-control form-control-sm" type="text" placeholder="Не указан" value="' + bc_v + '">\n' +
+                                    '          <span class="input-group-text"><a href="javascript:saveBarcode(' + row.id + ')" id="bc_btn_' + row.id + '"><i class="bx bx-save" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                    '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                    '                           data-bs-original-title="Сохранить"></i></a></span>\n' +
+                                    '        </div>'
+                                return barcode
+                            }
+                        },
+                        {
+                            render: function (data, type, row) {
+                                return '<span class="text-nowrap">' + moment(row.last_update).format('DD.MM.YYYY HH:mm') + '</span>'
+                            }
+                        },
+                        {
+                            render: function (data, type, row) {
+                                var actions = ''
+
+                                actions += '<a href="javascript:disableProduct(' + row.id + ')"><i class="bx bx-x" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                    '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                    '                           data-bs-original-title="Удалить"></i></a>'
+
+                                if (false) {
+                                    actions += '<a href="javascript:refreshProduct(' + row.id + ')"><i class="bx bx-refresh" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                        '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                        '                           data-bs-original-title="Обновить данные с Ozon"></i></a>'
+                                }
+
+
+                                return actions
+                            }
+                        },
+                    ],
+                    autoWidth: false,
+
+                    "order": [[0, "desc"]]
+                });
+                document.getElementById('size_modals').innerHTML = modal;
+                document.getElementById('prd-ldr').style.display = 'none';
+                document.getElementById('prd-div').style.display = 'block';
+                $('[data-bs-toggle="tooltip"]').tooltip();
+                ;
+            },
+
+            error: function (data) {
+                toastr.error('Ошибка загрузки товаров: ' + data.responseJSON.detail)
+                document.getElementById('loading-members').style.display = 'none';
+            }
+
+        });
+
+    });
+
+</script>
+
+<script>
+
+    document.getElementById('create-product-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+
+        submitButton.disabled = true
+
+        const wb_url = document.getElementById('wb_url');
+
+        if (wb_url.value.length === 0) {
+            toastr.error('Введите ссылку на товар')
+            submitButton.disabled = false
+            return
+        }
+
+        var currentPage = window.location.pathname;
+        var parts = currentPage.split('/');
+        var org_id = parts[parts.length - 1];
+
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/products/create', currentDomain);
+        url.searchParams.append('org_id', org_id);
+        url.searchParams.append('ozon_url', wb_url.value);
+        submitButton.classList.remove('disabled');
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function (data) {
+                location.reload()
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail)
+                submitButton.disabled = false
+            }
+        });
+
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Товары организации
+                        <a href="javascript:"
+                           data-bs-toggle="offcanvas"
+                           data-bs-target="#off-create-prod"
+                           aria-controls="off-create-prod">
+                            <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Добавить"></i>
+                        </a>
+                        <a href="javascript:var u = '/products/getOwned?org_id=' + org_id; dt_refresh('dt_user_products', u)"
+                           id="rb">
+                            <i class="bx bx-refresh" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Обновить"></i>
+                        </a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="prd-ldr"></span>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-body table-responsive" id="prd-div" style="display: none;">
+                    <table id="dt_user_products" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th style="max-width: 20%">Товар</th>
+                            <th>Размер</th>
+                            <th>Цена</th>
+                            <th style="min-width: 12%">Штрих-код</th>
+                            <th>Обновление</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="size_modals"></div>
+<div class="mt-3">
+    <div class="offcanvas offcanvas-start" id="off-create-prod">
+
+        <div class="offcanvas-header">
+            <h5 id="off-create-product-label" class="offcanvas-title">Новый товар</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Закрыть"></button>
+        </div>
+
+        <div class="offcanvas-body">
+
+            <form id="create-product-form">
+
+                <div class="mb-4 row">
+                    <label for="wb_url" class="form-label">Ссылка на товар </label>
+                    <div class="col">
+                        <input class="form-control" type="text"
+                               placeholder="https://www.ozon.ru/product/"
+                               id="wb_url">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Добавить</button>
+
+            </form>
+
+
+        </div>
+    </div>
+</div>
+{% endblock %}

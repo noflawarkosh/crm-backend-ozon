@@ -1,0 +1,299 @@
+{% extends "!base-admin.html" %}
+{% block title %}Адреса | {% endblock %}
+{% block head %}
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+{% endblock %}
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+<script>
+
+    function updateAddressStatus(id, is_active) {
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({addresses: [{id: id, is_active: is_active}]}),
+            dataType: "json",
+            contentType: "application/json",
+            success: function () {
+                var msg = 'Данные пользователя обновлены'
+
+                if (is_active === true) {
+                    msg = 'Адрес активирован'
+                }
+
+                if (is_active === false) {
+                    msg = 'Адрес деактивирован'
+                }
+
+                toastr.success(msg)
+                dt_refresh('dt_addresses', '/admin/get/addresses_full')
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+
+    function setNewAddressStatus(selectedValue, rowId) {
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({'addresses': [{id: rowId, status_id: selectedValue}]}),
+            contentType:  "application/json",
+            success: function () {
+                toastr.success('Статус обновлен')
+            },
+            error: function () {
+                toastr.error('Ошибка сохранения. Обновите страницу и повторите попытку')
+            }
+        })
+
+
+    }
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/addresses_full',
+        success: function (data) {
+
+            $.ajax({
+                type: "GET",
+                url: '/admin/get/address_statuses',
+                success: function (as) {
+
+                    $('#dt_addresses').DataTable({
+
+                        "data": data,
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 50, 100, 500, -1], [10, 50, 100, 500, "Все"]],
+                        "searching": true,
+                        "ordering": true,
+                        "drawCallback": function () {
+                            $('.selectpicker').selectpicker();
+
+                            $('.selectpicker').change(function () {
+                                var selectedValue = $(this).val();
+                                var rowId = $(this).attr('id').split('_')[2];
+                                setNewAddressStatus(selectedValue, rowId);
+                            });
+                        },
+                        "columns": [
+                            {data: 'id'},
+                            {data: 'address'},
+                            {data: 'district'},
+                            {
+                                data: 'is_active',
+                                "render": function (data, type, row) {
+
+                                    var c = 'warning'
+                                    var cm = 'Не указано'
+
+                                    if (data === true) {
+                                        c = 'success'
+                                        cm = 'Да'
+                                    }
+
+                                    if (data === false) {
+                                        c = 'danger'
+                                        cm = 'Нет'
+                                    }
+
+                                    return '<span class="badge bg-label-' + c + '">' + cm + '</span>'
+                                }
+                            },
+                            {
+                                data: 'status_id',
+                                "render": function (data, type, row) {
+                                    var hidden = 'Не указан'
+                                    var options = '<option value=""> - Не указан - </option>'
+                                    for (var i in as) {
+
+                                        var selected = ''
+
+                                        if (data === as[i].id) {
+                                            selected = 'selected'
+                                            hidden = as[i].title
+                                        }
+
+                                        var option = '<option value="' + as[i].id + '" ' + selected + '>' + as[i].title + '</option>'
+
+                                        options += option
+                                    }
+
+                                    return '<select id="address_status_' + row.id + '" class="form-control selectpicker" data-live-search="true">' + options + '</select>'
+                                }
+                            },
+                            {
+                                data: "contractor",
+                                "render": function (data, type, row) {
+                                    return data ? data.name : ''
+                                }
+                            },
+                            {
+                                "render": function (data, type, row) {
+                                    var edit = '<a href="/admin-edit/addresses/' + row['id'] + '"><i class="bx bx-edit-alt"></i></a>'
+
+                                    if (row.is_active === true) {
+                                        edit += '<a href="javascript:updateAddressStatus(' + row['id'] + ', false)"><i class="bx bx-block"></i></a>'
+                                    }
+
+                                    if (row.is_active === false) {
+                                        edit += '<a href="javascript:updateAddressStatus(' + row['id'] + ', true)"><i class="bx bx-check"></i></a>'
+                                    }
+                                    return edit
+                                }
+                            }
+                        ],
+                        "order": [[0, "desc"]],
+                        "initComplete": function () {
+
+                            var table = this.api().table().header();
+                            var newRow = $('<tr></tr>');
+                            $(table).append(newRow);
+
+                            var searchColumns = [0, 1, 2, 3, 4];
+
+                            this.api().columns().every(function (i) {
+                                var column = this;
+                                if (searchColumns.includes(i)) {
+
+                                    var input = $('<input type="text" class="form-control" placeholder="" />');
+                                    $(newRow).append($('<th></th>').append(input));
+
+                                    input.on('keyup change clear', function () {
+                                        if (column.search() !== this.value) {
+                                            column.search(this.value).draw();
+                                        }
+                                    });
+                                } else {
+                                    $(newRow).append($('<th></th>'))
+
+                                }
+                            });
+                        },
+                    });
+
+                }
+            })
+
+        },
+        error: function () {
+            toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+        }
+    })
+
+    function massAddressesUpload() {
+        var ctrs = {}
+
+        $.ajax({
+            type: "GET",
+            url: '/admin/get/contractors',
+            dataType: "json",
+
+            success: function (data) {
+
+                for (var i in data) {
+                    ctrs[data[i].name] = data[i].id
+                }
+
+                var t_addrs = $('#bad_accounts').val().split('\n')
+                var addrs = []
+
+                for (var i in t_addrs) {
+                    if (t_addrs[i] !== '') {
+
+                        var ta = t_addrs[i].split('\t')
+
+                        if (!ctrs[ta[2]]) {
+                            toastr.error('Неизвестый подрядчик:  ' + ta[2])
+                            return;
+                        }
+
+                        addrs.push({
+                            'address': ta[0],
+                            'district': ta[1],
+                            'contractor_id': ctrs[ta[2]],
+                            'is_active': true,
+
+                        })
+                    }
+                }
+
+                $.ajax({
+                    type: "POST",
+                    url: '/admin/save',
+                    data: JSON.stringify({addresses: addrs}),
+                    contentType: "application/json",
+                    success: function () {
+                        toastr.success('Сохранено')
+                        dt_refresh('dt_addresses', '/admin/get/addresses_full')
+
+                    },
+                    error: function () {
+                        toastr.error('Ошибка сохранения данных. Обновите страницу и повторите попытку')
+
+                    }
+                })
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Адреса ПВЗ
+                        <a href="javascript:dt_refresh('dt_addresses', '/admin/get/addresses_full')" id="rb"><i
+                                class="bx bx-refresh"></i></a>
+                        <a href="/admin-create/addresses"><i class="bx bx-plus"></i></a>
+                        <a href="/admin-tables/address_statuses">статусы</a>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-body">
+                    <label for="bad_accounts" class="form-label">
+                        Массовое добавление адресов
+                        <a href="javascript:massAddressesUpload();">
+                            <i class="bx bx-arrow-from-bottom"></i>
+                        </a>
+                    </label>
+                    <textarea class="form-control" id="bad_accounts" rows="3"></textarea>
+                    <hr>
+                    <div class="card-datatable">
+                        <table id="dt_addresses" class="datatables-ajax table table-bordered dataTable no-footer">
+                            <thead>
+                            <tr>
+                                <th>#ID</th>
+                                <th>Адрес</th>
+                                <th>Район</th>
+                                <th>Активен</th>
+                                <th>Статус</th>
+                                <th>Подрядчик</th>
+                                <th>Действия</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

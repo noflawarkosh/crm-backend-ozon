@@ -1,0 +1,659 @@
+{% extends "!base.html" %}
+{% block title %}Кошелек{% endblock %}
+
+{% block head %}
+
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/apex-charts/apex-charts.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/css/pages/card-analytics.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+{% endblock %}
+
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/app-ecommerce-dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<!-- Create Bill -->
+
+<script>
+    var currentPage = window.location.pathname;
+    var parts = currentPage.split('/');
+    var Gorg_id = parts[parts.length - 1];
+
+    document.getElementById('create-bill-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        const amountInput = document.getElementById('bill-amount');
+
+        if (amountInput.value.length === 0) {
+            toastr.error('Введите максимальное число использований')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        var sourceInput = document.getElementById('bill-source')
+
+        sourceInput = sourceInput.options[sourceInput.selectedIndex].value
+
+        var currentPage = window.location.pathname;
+        var parts = currentPage.split('/');
+        var org_id = parts[parts.length - 1];
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/payments/createBill', currentDomain);
+        url.searchParams.append('org_id', org_id);
+        url.searchParams.append('source_id', sourceInput);
+        url.searchParams.append('amount', amountInput.value);
+        submitButton.classList.remove('disabled');
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function (data) {
+                location.replace('/bill/' + data)
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail)
+                submitButton.classList.remove('disabled');
+            }
+        });
+
+    });
+</script>
+
+<!-- Get Sources -->
+<script>
+    var CP = null
+
+    $.ajax({
+
+        url: '/payments/getActiveSources',
+        type: 'GET',
+
+        success: function (data) {
+            var selectElement = $('#bill-source');
+
+            data = data.sort((a, b) => {
+
+                const priorityA = a.priority ?? 9999;
+                const priorityB = b.priority ?? 9999;
+
+                return priorityA - priorityB;
+            });
+
+            $.each(data, function (index, item) {
+                var optionText = item.bank;
+                var optionValue = item.id
+                var optionDataSubtext = (item.description ? item.description : '')
+
+                var option = $('<option>').text(optionText).attr('data-subtext', optionDataSubtext).val(optionValue);
+                selectElement.append(option);
+            });
+
+            selectElement.selectpicker('refresh');
+
+        },
+
+        error: function () {
+            toastr.error('Ошибка получения реквизитов')
+        }
+    });
+
+    $.ajax({
+        url: '/payments/currentLevel?org_id=' + Gorg_id,
+        type: 'GET',
+        success: function (data) {
+            CP = data.level.price_percent_penalty
+        }
+    })
+
+    function calcCheckout() {
+        var bs = document.getElementById('bill-source');
+        var am = document.getElementById('bill-amount');
+        var pr_1 = document.getElementById('pr_1');
+        var pr_2 = document.getElementById('pr_2');
+        var pr_3 = document.getElementById('pr_3');
+        var p = document.getElementById('precheck');
+
+        var ami = parseInt(am.value)
+
+        if (ami > 0) {
+            pr_1.innerText = ami + ' ₽'
+            if (bs.value == 1) {
+                var op = Math.ceil(am.value * CP / 100)
+
+                pr_2.innerText = op + ' ₽ (+' + CP + '%)'
+                pr_3.innerText = op + ami + ' ₽'
+            } else {
+                pr_2.innerText = 0 + ' ₽'
+                pr_3.innerText = am.value + ' ₽'
+            }
+
+            p.style.display = 'block'
+        } else {
+            p.style.display = 'none'
+        }
+
+    }
+
+    $('#bill-source').on('change', function () {
+        calcCheckout()
+    })
+
+    $('#bill-amount').on('keyup', function () {
+        calcCheckout()
+    })
+
+</script>
+
+<!-- Get Bills -->
+<script>
+    const url = window.location.href;
+    var arr = url.split('/')
+    var id = arr[arr.length - 1]
+
+    $.ajax({
+        url: '/payments/getOwnedBills?org_id=' + id,
+        method: 'get',
+        success: function (data) {
+            $('#dt_user_bills').DataTable({
+                "data": data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {
+                        data: 'id',
+                        "render": function (data, type, row) {
+                            return '<a href="/bill/' + row.id + '">#' + row.id + '</a>'
+                        }
+                    },
+                    {
+                        data: 'date',
+                        "render": function (data, type, row) {
+                            return moment(data).format('DD.MM.YYYY HH:mm')
+                        }
+                    },
+                    {
+                        data: 'amount',
+                        "render": function (data, type, row) {
+
+                            var penalty = ''
+                            var tpa = data
+                            if (row.penalty > 0) {
+                                tpa = data + row.penalty
+                                penalty = '<small class="text-nowrap"><b class="text-danger my-auto">' + row.penalty.toLocaleString('ru-RU') + ' ₽</b></small>'
+                            }
+
+                            return '<b>' + tpa.toLocaleString('ru-RU') + ' ₽ </b>' + penalty
+                        }
+                    },
+                    {
+                        data: 'source',
+                        "render": function (data, type, row) {
+                            return data.bank
+                        }
+                    },
+                    {
+                        data: 'media',
+                        "render": function (data, type, row) {
+                            var cell = '—'
+
+                            if (data !== null) {
+                                cell = '<a target="_blank" href="https://storage.yandexcloud.net/greedybear/' + data + '">' + 'Скачать' + '</a>'
+                            }
+
+                            return cell
+                        }
+                    },
+                    {
+                        data: 'status',
+                        "render": function (data, type, row) {
+
+                            var statuses = {
+                                1: 'success',
+                                2: 'warning',
+                                3: 'info',
+                                4: 'danger',
+                                5: 'danger',
+                                6: 'primary'
+                            }
+
+                            return '<span class="badge bg-label-' + statuses[data.id] + '">' + data.title + '</span>'
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return '<a target="_blank" href="/bill/' + row.id + '"><i class="bx bx-show" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                '                           data-bs-original-title="Подробнее"></i></a>'
+                        }
+                    }
+
+                ],
+
+                "order": [[0, "desc"]]
+            });
+            document.getElementById('bls-div').style.display = 'block';
+            document.getElementById('bls-ldr').style.display = 'none';
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        },
+        error: function (data) {
+            toastr.error('Ошибка загрузки счетов: ' + data.responseJSON.detail)
+            document.getElementById('bls-ldr').style.display = 'none';
+        }
+    });
+</script>
+
+<!-- Get History -->
+<script>
+
+    function calcTotal(x) {
+        var add = 0
+        var freeze = 0
+        var spent = 0
+        var unfreezed = 0
+
+        for (var i in x) {
+            if (x[i].action_id === 1) {
+                add = add + x[i].amount
+            }
+            if (x[i].action_id === 2) {
+                freeze = freeze + x[i].amount
+            }
+            if (x[i].action_id === 3) {
+                spent = spent + x[i].amount
+            }
+            if (x[i].action_id === 4) {
+                unfreezed = unfreezed + x[i].amount
+            }
+        }
+
+        return {
+            'add': add,
+            'freeze': freeze,
+            'spent': spent,
+            'unfreezed': unfreezed,
+            'total': add + unfreezed - freeze - spent
+        }
+    }
+
+    var arr = url.split('/')
+    var org_id = arr[arr.length - 1]
+
+    /*
+    $.ajax({
+        url: '/payments/currentBalance?org_id=' + org_id,
+        type: 'GET',
+        success: function (data) {
+            var tx = ''
+
+            if (data[0] < 0) {
+                tx = ' (Остаток: <b>' + (Math.abs(data[1]) - Math.abs(data[0])).toLocaleString('ru-RU') + '  ₽</b>)'
+            }
+
+            document.getElementById('balance_info').innerHTML = 'Размер обещанного платежа составляет <b>' + Math.abs(data[1]).toLocaleString('ru-RU') + '  ₽ </b>' + tx
+            document.getElementById('balance_info').style.display = 'block';
+        }
+    })
+    */
+
+    $.ajax({
+
+        url: '/payments/getHistory?org_id=' + org_id,
+        type: 'GET',
+
+        success: function (data) {
+
+            var tt = calcTotal(data)
+
+            document.getElementById('ctr-2').innerHTML = '<b>₽ ' + (tt['total']).toLocaleString('ru-RU') + '</b>'
+            document.getElementById('ctr-3').innerHTML = '<b>₽ ' + (tt['freeze'] - tt['unfreezed']).toLocaleString('ru-RU') + '</b>'
+            document.getElementById('ctr-4').innerHTML = '<b>₽ ' + tt['spent'].toLocaleString('ru-RU') + '</b>'
+
+            if ((tt['total']) < 0) {
+                document.getElementById('balance_alert').style.display = 'block';
+                document.getElementById('balance_alert').innerHTML = 'Необходимо пополнить баланс на сумму <b>' + (tt['total']).toLocaleString('ru-RU').toString().replace('-', '') + ' ₽</b> во избежание возникновения задолженности'
+            }
+
+        },
+
+        error: function (data) {
+            toastr.error('Ошибка получения истории кошелька: ' + data.responseJSON.detail)
+            document.getElementById('hst-ldr').style.display = 'none';
+        }
+    });
+
+    $.ajax({
+
+        url: '/payments/getOrderedHistory?org_id=' + org_id,
+        type: 'GET',
+
+        success: function (data) {
+            var res = []
+
+            for (var key in data) {
+
+                var prods_1 = 0
+                var prods_2 = 0
+
+                var servs_1 = 0
+                var servs_2 = 0
+
+                var total_1 = 0
+                var total_2 = 0
+
+                for (var i in data[key]) {
+                    if (data[key][i].action_id === 3) {
+                        total_1 -= data[key][i].amount
+
+                        if (data[key][i].target_id === 1) {
+                            prods_1 -= data[key][i].amount
+                        }
+
+                        if (data[key][i].target_id === 2 || data[key][i].target_id === 3 || data[key][i].target_id === 4 || data[key][i].target_id === 5 || data[key][i].target_id === 6 || data[key][i].target_id === 7) {
+                            servs_1 -= data[key][i].amount
+                        }
+
+                    }
+
+                    if (data[key][i].action_id === 2) {
+                        total_2 -= data[key][i].amount
+
+                        if (data[key][i].target_id === 1) {
+                            prods_2 -= data[key][i].amount
+                        }
+
+                        if (data[key][i].target_id === 2 || data[key][i].target_id === 3 || data[key][i].target_id === 4 || data[key][i].target_id === 5 || data[key][i].target_id === 6 || data[key][i].target_id === 7) {
+                            servs_2 -= data[key][i].amount
+                        }
+                    }
+
+                    if (data[key][i].action_id === 4) {
+                        total_2 += data[key][i].amount
+
+                        if (data[key][i].target_id === 1) {
+                            prods_2 += data[key][i].amount
+                        }
+
+                        if (data[key][i].target_id === 2 || data[key][i].target_id === 3 || data[key][i].target_id === 4 || data[key][i].target_id === 5 || data[key][i].target_id === 6 || data[key][i].target_id === 7) {
+                            servs_2 += data[key][i].amount
+                        }
+                    }
+
+                }
+
+                res.push({
+                    'date': key,
+                    'prods1': prods_1,
+                    'prods2': prods_2,
+                    'servs1': servs_1,
+                    'servs2': servs_2,
+                    'total1': total_1,
+                    'total2': total_2
+                })
+            }
+
+
+            $('#dt_user_history').DataTable({
+                "data": res,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+                autoWidth: false,
+
+                columns: [
+                    {
+                        data: 'date',
+                        "render": function (data, type, row) {
+                            return data
+                        }
+                    },
+                    {
+                        data: 'prods',
+                        "render": function (data, type, row) {
+
+
+                            return '<b class="text-nowrap text-danger">' + row.prods1.toLocaleString('ru-RU') + ' ₽</b>' + '<b> / </b>' + '<b class="text-nowrap text-info">' + row.prods2.toLocaleString('ru-RU') + ' ₽</b>'
+                        }
+                    },
+                    {
+                        data: 'servs',
+                        "render": function (data, type, row) {
+
+
+                            return '<b class="text-nowrap text-danger">' + row.servs1.toLocaleString('ru-RU') + ' ₽</b>' + '<b> / </b>' + '<b class="text-nowrap text-info">' + row.servs2.toLocaleString('ru-RU') + ' ₽</b>'
+                        }
+                    },
+                    {
+                        data: 'amount',
+                        "render": function (data, type, row) {
+
+                            return '<b class="text-nowrap text-danger">' + row.total1.toLocaleString('ru-RU') + ' ₽</b>' + '<b> / </b>' + '<b class="text-nowrap text-info">' + row.total2.toLocaleString('ru-RU') + ' ₽</b>'
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return '<a href="/wallet/' + org_id + '/' + row.date.replaceAll('.', '') + row.date.replaceAll('.', '') + '">Детализация</a>'
+                        }
+                    },
+
+                ],
+
+                "order": [[0, "desc"]]
+            });
+
+            document.getElementById('hst-div').style.display = 'block';
+            document.getElementById('ctrs').style.display = 'flex';
+            document.getElementById('hst-ldr').style.display = 'none';
+
+        },
+
+        error: function (data) {
+            toastr.error('Ошибка получения истории кошелька: ' + data.responseJSON.detail)
+            document.getElementById('hst-ldr').style.display = 'none';
+        }
+    });
+
+
+</script>
+{% endblock %}
+
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row mb-4 g-3" id="ctrs" style="display: none">
+
+        <div class="col-xl-4">
+            <div class="card ">
+                <div class="card-body border border-primary rounded">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="content-left">
+                            <h3 class="mb-0" id="ctr-2"></h3>
+                            <small>Баланс </small>
+                        </div>
+                        <span class="badge bg-label-primary rounded-circle p-2">
+                            <i class="bx bx-credit-card-front bx-sm"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="content-left">
+                            <h3 class="mb-0" id="ctr-3"></h3>
+                            <small>Заморожено</small>
+                        </div>
+                        <span class="badge bg-label-warning rounded-circle p-2">
+                            <i class="bx bx-fridge bx-sm"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="content-left">
+                            <h3 class="mb-0" id="ctr-4"></h3>
+                            <small>Траты за все время</small>
+                        </div>
+                        <span class="badge bg-label-danger rounded-circle p-2">
+                            <i class="bx bx-infinite bx-sm"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert alert-primary" role="alert" id="balance_info" style="display: none"></div>
+    <div class="alert alert-danger" role="alert" id="balance_alert" style="display: none"></div>
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">История кошелька
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="hst-ldr"></span>
+                    </h5>
+                    <small class="card-subtitle">За весь период существования организации</small>
+                </div>
+                <div class="card-body table-responsive" id="hst-div" style="display: none">
+                    <table id="dt_user_history" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Расходы на товары</th>
+                            <th>Расходы на услуги</th>
+                            <th>Общие расходы</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Счета на пополнение
+                        <a href="javascript:"
+                           data-bs-toggle="offcanvas"
+                           data-bs-target="#off-create-bill"
+                           aria-controls="off-create-bill">
+                            <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Создать"></i>
+                        </a>
+                        <a href="javascript:var u = '/payments/getOwnedBills?org_id=' + id; dt_refresh('dt_user_bills', u)"
+                           id="rb1">
+                            <i class="bx bx-refresh" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Обновить"></i>
+                        </a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="bls-ldr"></span>
+                    </h5>
+                    <small class="card-subtitle">
+                        Создайте счет, выполните перевод и ожидайте подтверждения
+                    </small>
+                </div>
+                <div class="card-body table-responsive" id="bls-div" style="display: none">
+                    <table id="dt_user_bills" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Дата создания</th>
+                            <th>Сумма</th>
+                            <th>Получатель</th>
+                            <th>Вложения</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <div class="offcanvas offcanvas-start" id="off-create-bill">
+
+        <div class="offcanvas-header">
+            <h5 id="off-create-bill-label" class="offcanvas-title">Новое пополнение</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Закрыть"></button>
+        </div>
+
+        <div class="offcanvas-body mx-0 flex-grow-0">
+
+            <form id="create-bill-form">
+
+                <div class="mb-4 row">
+                    <label for="bill-source" class="form-label">Получатель/способ</label>
+                    <select id="bill-source" class="selectpicker w-100" data-style="btn-default"
+                            data-show-subtext="true">
+                    </select>
+                </div>
+
+                <div class="mb-4 row">
+                    <label for="bill-amount" class="form-label">Сумма пополнения</label>
+                    <div class="col">
+                        <input class="form-control" type="number" placeholder="" id="bill-amount">
+                    </div>
+                </div>
+
+                <div class="mb-4" id="precheck" style="display: none">
+                    <ul class="list-unstyled mb-6">
+                        <li class="mb-2">
+                            <span class="h6 me-1">Поступит на кошелек:</span>
+                            <span id="pr_1"></span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="h6 me-1">Комиссия:</span>
+                            <span id="pr_2"></span>
+                        </li>
+                        <li class="mb-2">
+                            <span class="h6 me-1">Итого к оплате:</span>
+                            <span id="pr_3"></span>
+                        </li>
+
+
+                    </ul>
+                </div>
+                <button type="submit" class="btn btn-primary">Создать</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

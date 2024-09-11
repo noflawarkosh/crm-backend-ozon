@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+
+<html lang="ru" class="light-style layout-wide  customizer-hide" dir="ltr" data-theme="theme-default"
+      data-assets-path="../../assets/" data-template="vertical-menu-template">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+
+    <title>GreedyBear - Регистрация</title>
+
+
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='assets/img/icons/logo.ico') }}"/>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/boxicons.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/fontawesome.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/fonts/flag-icons.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/rtl/core.css') }}"
+          class="template-customizer-core-css"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/rtl/theme-default.css') }}"
+          class="template-customizer-theme-css"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/css/demo.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='assets/vendor/libs/@form-validation/form-validation.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/pages/page-auth.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css"/>
+
+
+    <script src="{{ url_for('static', path='assets/vendor/js/helpers.js') }}"></script>
+    <script src="{{ url_for('static', path='assets/js/config.js') }}"></script>
+
+
+</head>
+
+<body>
+
+
+<div class="authentication-wrapper authentication-cover">
+    <div class="authentication-inner row m-0">
+
+        <div class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center p-5">
+            <div class="w-100 d-flex justify-content-center">
+                <img src="{{ url_for('static', path='assets/img/logos/logo_t.png') }}" class="img-fluid" width="700">
+            </div>
+        </div>
+
+        <div class="d-flex col-12 col-lg-5 col-xl-4 align-items-center authentication-bg p-sm-5 p-4">
+            <div class="w-px-400 mx-auto">
+                <div class="app-brand mb-3">
+                    <p class="app-brand-link gap-2">
+                        <span class="app-brand-text demo text-body fw-bold">greedybear</span>
+                    </p>
+                </div>
+                <h4 class="mb-4">Регистрация пользователя </h4>
+                <form id="reg">
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Имя *</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               placeholder="Иван" autofocus autocomplete="nofill">
+                        <div class="valid-feedback" id="vf-name">У вас красивое имя!</div>
+                        <div class="invalid-feedback" id="if-name"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Логин *</label>
+                        <input type="text" class="form-control" id="username" name="username"
+                               placeholder="ivan77" autofocus autocomplete="nofill">
+                        <div class="valid-feedback" id="vf-username">То, что нужно!</div>
+                        <div class="invalid-feedback" id="if-username"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email *</label>
+                        <input type="text" class="form-control" id="email" name="email" placeholder="mail@example.ru">
+                        <div class="valid-feedback" id="vf-email">То, что нужно!</div>
+                        <div class="invalid-feedback" id="if-email">Укажите правильный email</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="telnum" class="form-label">Номер телефона *</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="+79100000000" aria-label="telnum"
+                                   aria-describedby="basic-addon11" id="telnum" name="telnum" value="+7"/>
+                        </div>
+                        <div class="valid-feedback" id="vf-telnum">То, что нужно!</div>
+                        <div class="invalid-feedback" id="if-telnum"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="telegram" class="form-label">Telegram *</label>
+                        <div class="input-group">
+                            <span class="input-group-text" id="basic-addon12">@</span>
+                            <input type="text" class="form-control" placeholder="telegram" aria-label="telegram"
+                                   aria-describedby="basic-addon12" id="telegram" name="telegram"/>
+                            <div class="valid-feedback" id="vf-telegram">То, что нужно!</div>
+                            <div class="invalid-feedback" id="if-telegram"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3 form-password-toggle">
+                        <label class="form-label" for="password1">Пароль *</label>
+                        <div class="input-group input-group-merge">
+                            <input type="password" id="password1" class="form-control" name="password1"
+                                   aria-describedby="password" autocomplete="nofill"/>
+                            <span class="input-group-text cursor-pointer"><i class="bx bx-hide"
+                                                                             id="password-toggle1"></i></span>
+                            <div class="valid-feedback" id="vf-pw1">То что нужно!</div>
+                            <div class="invalid-feedback" id="if-pw1"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4 form-password-toggle">
+                        <label class="form-label" for="password2">Повтор пароля *</label>
+                        <div class="input-group input-group-merge">
+                            <input type="password" id="password2" class="form-control" name="password2"
+
+                                   aria-describedby="password" autocomplete="nofill"/>
+                            <span class="input-group-text cursor-pointer"><i class="bx bx-hide"
+                                                                             id="password-toggle2"></i></span>
+                            <div class="valid-feedback" id="vf-pw2">То что нужно!</div>
+                            <div class="invalid-feedback" id="if-pw2"></div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms-conditions1" name="terms1">
+                            <label class="form-check-label" for="terms-conditions1">
+                                Я согласен с
+                                <a href="javascript:void(0);">условиями использования сервиса</a>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms-conditions2" name="terms2">
+                            <label class="form-check-label" for="terms-conditions2">
+                                Я даю согласие на
+                                <a href="javascript:void(0);">обработку персональных данных</a>
+                            </label>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary d-grid w-100 mt-2" type="submit" id="sb">
+                        Зарегистрироваться
+                    </button>
+                </form>
+                <p class="text-center mt-3">
+                    <span>Уже зарегистрированы?</span>
+                    <a href="/login">
+                        <span>Войти</span>
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/3.3.4/jquery.inputmask.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+
+<script>
+
+    $(document).ready(function () {
+
+        $('#password-toggle1').click(function () {
+            var input = $('#password1');
+            var icon = $('#password-toggle1');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('bx-hide').addClass('bx-show');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('bx-show').addClass('bx-hide');
+            }
+        });
+
+        $('#password-toggle2').click(function () {
+            var input = $('#password2');
+            var icon = $('#password-toggle2');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('bx-hide').addClass('bx-show');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('bx-show').addClass('bx-hide');
+            }
+        });
+    });
+</script>
+
+
+<script>
+    var sb = document.getElementById('sb');
+
+    function good(i, text) {
+        var ve = $('#vf-' + i)
+        var ie = $('#if-' + i)
+        ve.html(text)
+        ve.show()
+        ie.hide()
+        sb.classList.remove('disabled')
+        return true
+    }
+
+    function bad(i, text) {
+        var ve = $('#vf-' + i)
+        var ie = $('#if-' + i)
+        ie.html(text)
+        ie.show()
+        ve.hide()
+        sb.classList.add('disabled')
+        return false
+    }
+
+    function validateName(value) {
+        const regex = /^[а-яА-Я]+$/;
+        var x = value.length;
+
+        if (!regex.test(value) && value !== '') {
+            return bad('name', 'Пожалуйста, используйте только кириллицу');
+        }
+
+        if (x === 0) {
+            return bad('name', 'Введите ваше имя');
+        } else if (x > 0 && x <= 8) {
+            return good('name', 'У вас красивое имя');
+        } else if (x > 8 && x <= 12) {
+            return good('name', 'У вас длинное красивое имя');
+        } else if (x > 12 && x <= 17) {
+            return good('name', 'У вас очень длинное красивое имя');
+        } else if (x > 17 && x <= 30) {
+            return good('name', 'У вас оооочень длинное красивое имя');
+        } else if (x > 30 && x <= 50) {
+            return good('name', 'У вас <b>ООООЧЕНЬ</b> длинное красивое имя');
+        } else if (x > 50) {
+            return bad('name', `У вас неверноятно длинное и красивое имя, но мы не сможем его запомнить. Нужно убрать ${x - 50} символов`);
+        }
+    }
+
+    function validateUsername(value) {
+        const regex = /^[a-zA-z0-9]+$/;
+        var x = value.length;
+
+        if (value === '') {
+            return bad('username', 'Введите имя пользователя')
+        }
+
+        if (!regex.test(value)) {
+            return bad('username', 'Пожалуйста, используйте только латиницу и цифры')
+        }
+
+        if (x < 5) {
+            return bad('username', 'Еще хотя бы ' + (5 - x) + ' символов')
+        }
+
+        if (x > 20) {
+            return bad('username', 'Перебор, нужно убрать ' + (x - 20) + ' символов')
+        }
+
+        return good('username', 'То, что нужно!')
+    }
+
+    function validateTelegram(value) {
+        const regex = /^[a-zA-z0-9_]+$/;
+        var x = value.length;
+
+        if (value === '') {
+            return bad('telegram', 'Введите тег вашего <a href="https://telegram.org/" target="_blank">Telegram</a>')
+        }
+
+        if (!regex.test(value)) {
+            return bad('telegram', 'Пожалуйста, используйте только латиницу, цифры и _')
+        }
+
+        if (x < 5) {
+            return bad('telegram', 'Еще хотя бы ' + (5 - x) + ' символов')
+        }
+
+        if (x > 50) {
+            return bad('telegram', 'Перебор, нужно убрать ' + (x - 50) + ' символов')
+        }
+
+        return good('telegram', 'То, что нужно!')
+    }
+
+    function validatePhone(value) {
+        const regex = /^\+7\d{10}$/;
+        var x = value.length;
+
+        if (value.length === 0) {
+            return bad('telnum', 'Введите номер телефона');
+        }
+
+        if (!regex.test(value)) {
+            bad('telnum', 'Неверный формат телефона. Пример: +79123456789');
+            return false;
+        }
+
+        if (x !== 12) {
+            return bad('telnum', 'Телефон должен состоять из 11 цифр и начинаться с +7');
+        }
+
+        return good('telnum', 'То, что нужно!');
+    }
+
+    function validateEmail(value) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (value.length === 0) {
+            return bad('email', 'Введите адрес электронной почты');
+        }
+
+        if (!regex.test(value)) {
+            return bad('email', 'Почта неверна');
+        }
+
+        if (value.length > 100) {
+            return bad('email', 'Максимальная длина электронной почты не более 100 символов');
+        }
+
+        return good('email', 'То, что нужно!');
+    }
+
+    function validatePassword(value, n) {
+        const regex = /^[^а-яА-Я]+$/;
+        const pwv1 = document.getElementById('password1').value;
+        const pwv2 = document.getElementById('password2').value;
+
+        if (value.length === 0) {
+            return bad('pw' + n, 'Введите пароль');
+        }
+
+        if (!regex.test(value)) {
+            return bad('pw' + n, 'Пароль может содержать только латинские буквы, цифры и специальные символы');
+        }
+
+        if (value.length < 8) {
+            return bad('pw' + n, 'Минимальная длина пароля 8 символов. Еще хотя бы ' + (8 - value.length) + ' символов')
+        }
+
+        if (value.length > 16) {
+            return bad('pw' + n, 'Максимальная длина пароля 16 символов. Нужно убрать ' + (value.length - 16) + ' символов')
+        }
+
+        if (pwv1 !== pwv2) {
+            bad('pw1', '— Тот, что снизу на меня не похож!')
+            bad('pw2', '— Тот, что сверху на меня не похож!')
+            return false
+        }
+
+        good('pw1', 'То, что нужно!');
+        good('pw2', 'То, что нужно!');
+        return true
+
+    }
+
+    const nameInput = document.getElementById('name');
+    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
+    const telnumInput = document.getElementById('telnum');
+    const telegramInput = document.getElementById('telegram');
+    const password1Input = document.getElementById('password1');
+    const password2Input = document.getElementById('password2');
+    const check1 = document.getElementById('terms-conditions1');
+    const check2 = document.getElementById('terms-conditions2');
+
+    nameInput.addEventListener('input', function (event) {
+        validateName(event.target.value);
+    });
+
+    usernameInput.addEventListener('input', function (event) {
+        validateUsername(event.target.value);
+    });
+
+    telnumInput.addEventListener('input', function (event) {
+        validatePhone(event.target.value);
+    });
+
+    emailInput.addEventListener('input', function (event) {
+        validateEmail(event.target.value);
+    });
+
+    telegramInput.addEventListener('input', function (event) {
+        validateTelegram(event.target.value);
+    });
+
+    password1Input.addEventListener('input', function (event) {
+        validatePassword(event.target.value, 1);
+    });
+
+    password2Input.addEventListener('input', function (event) {
+        validatePassword(event.target.value, 2);
+    });
+
+
+</script>
+
+<script>
+    document.getElementById('reg').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        var validated = true
+        if (!validateName(nameInput.value)) {
+            validated = false
+        }
+
+        if (!validateUsername(usernameInput.value)) {
+            validated = false
+        }
+
+        if (!validatePhone(telnumInput.value)) {
+            validated = false
+        }
+
+        if (!validateEmail(emailInput.value)) {
+            validated = false
+        }
+
+        if (!validateTelegram(telegramInput.value)) {
+            validated = false
+        }
+
+        if (!validatePassword(password1Input.value, 1)) {
+            validated = false
+        }
+
+        if (!validatePassword(password2Input.value, 2)) {
+            validated = false
+        }
+
+        if (!validated) {
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        if (!(check1.checked)) {
+            toastr.error('Для начала использования сервиса, вы должны согласиться с условиями использования')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        if (!(check2.checked)) {
+            toastr.error('Для начала использования сервиса, вы должны дать согласие на обработку персональных данных')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        $.ajax({
+            url: '/auth/register?name=' + nameInput.value + '&username='  + usernameInput.value  + '&email='  + emailInput.value  + '&telnum='  + telnumInput.value  + '&telegram='  + telegramInput.value  + '&password='  + password1Input.value,
+            method: 'post',
+            contentType: 'application/x-www-form-urlencoded',
+            success: function () {
+                location.replace('/success?name=' + nameInput.value)
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail);
+                submitButton.classList.remove('disabled');
+            }
+        });
+
+    });
+
+</script>
+
+
+</body>
+</html>

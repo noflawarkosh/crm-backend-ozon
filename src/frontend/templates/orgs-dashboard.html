@@ -1,0 +1,1008 @@
+{% extends "!base.html" %}
+{% block title %}Организация{% endblock %}
+{% block js %}
+<!-- Members funcs -->
+<script>
+
+    function getPageID() {
+        const url = window.location.href;
+        var arr = url.split('/')
+        return arr[arr.length - 1]
+    }
+
+    function blockUser(user_id) {
+
+        if (confirm("Вы уверены, что хотите ЗАБЛОКИРОВАТЬ пользователя? В дальнейшем он НЕ СМОЖЕТ присоединиться к организации по одному из приглашений ДО МОМЕНТА разблокировки")) {
+            document.getElementById('page_ldr').style.display = 'block';
+            $.ajax({
+
+                url: '/organizations/updateMember?member_id=' + user_id + '&org_id=' + getPageID() + '&status=4',
+                method: 'post',
+
+                success: function () {
+                    location.reload()
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none';
+                    toastr.error('Ошибка при выполнении операции. Обновите страницу и повторите попытку')
+                }
+
+            });
+        }
+    }
+
+    function unblockUser(user_id) {
+
+        if (confirm("Вы уверены, что хотите РАЗБЛОКИРОВАТЬ пользователя? В дальнейшем ОН СМОЖЕТ вновь присоединиться к организации по одному из АКТИВНЫХ приглашений")) {
+            document.getElementById('page_ldr').style.display = 'block';
+            $.ajax({
+
+                url: '/organizations/updateMember?member_id=' + user_id + '&org_id=' + getPageID() + '&status=5',
+                method: 'post',
+
+                success: function () {
+                    location.reload()
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none';
+                    toastr.error('Ошибка при выполнении операции. Обновите страницу и повторите попытку')
+                }
+
+            });
+        }
+    }
+
+    function kickUser(user_id, name) {
+
+        if (confirm("Вы уверены, что хотите ВЫГНАТЬ пользователя? В дальнейшем ОН СМОЖЕТ вновь присоединиться к организации по одному из АКТИВНЫХ приглашений")) {
+            document.getElementById('page_ldr').style.display = 'block';
+            $.ajax({
+
+                url: '/organizations/updateMember?member_id=' + user_id + '&org_id=' + getPageID() + '&status=3',
+                method: 'post',
+
+                success: function () {
+                    location.reload()
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none';
+                    toastr.error('Ошибка при выполнении операции. Обновите страницу и повторите попытку')
+                }
+
+            });
+        }
+
+
+    }
+
+    function setLevel(user_id, level) {
+        if (confirm("Вы уверены, что установить пользователю " + name + '(@' + username + ") уровень " + level)) {
+            document.getElementById('page_ldr').style.display = 'block';
+            $.ajax({
+
+                url: '/organizations/updateMember?member_id=' + user_id + '&level=' + level,
+                method: 'post',
+
+                success: function () {
+                    location.reload()
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none';
+                    toastr.error('Ошибка при выполнении операции. Обновите страницу и повторите попытку')
+                }
+
+            });
+        }
+    }
+
+    function disableInv(inv_id) {
+        if (confirm('Вы уверены, что хотите сделать приглашение недействительным?')) {
+            document.getElementById('page_ldr').style.display = 'block';
+
+            $.ajax({
+                url: '/organizations/disableInvitation?invitation_id=' + inv_id,
+                method: 'post',
+
+                success: function () {
+                    location.reload()
+                },
+                error: function (data) {
+                    document.getElementById('page_ldr').style.display = 'none';
+                    toastr.error('Ошибка при выполнении операции. Обновите страницу и повторите попытку')
+                }
+            });
+
+        }
+    }
+</script>
+
+<!-- Get organization info  -->
+<script>
+    const url = window.location.href;
+    var arr = url.split('/')
+    var id = arr[arr.length - 1]
+
+    $.ajax({
+
+        url: '/organizations/readOrganization?org_id=' + id,
+        method: 'get',
+
+        success: function (data) {
+            document.title = data.title + ' - GreedyBear'
+            document.getElementById('org-name').innerText = data.title + ' · ИНН ' + data.inn
+
+            document.getElementById('org-div').style.display = 'block';
+
+            if (data.level_id == null) {
+                document.getElementById('org-div').classList.remove('blurred')
+            }
+
+        },
+
+        error: function (data) {
+            document.getElementById('page_container').innerHTML = '<div class="alert alert-danger" role="alert">' + data.responseJSON.detail + '</div>'
+
+        }
+    });
+</script>
+
+<!-- Get members -->
+<script>
+    $.ajax({
+
+        url: '/organizations/readOrganizationMemberships?org_id=' + id,
+        method: 'get',
+
+        success: function (data) {
+
+            $('#dt_user_members').DataTable({
+                "data": data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {
+                        render: function (data, type, row) {
+                            var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}"
+                            if (row.user.media !== null) {
+                                avatar_src = '/storage/get/' + row.user.media.storage_href
+                            }
+
+                            return '<div class="d-flex justify-content-start align-items-center user-name">' +
+                                '<div class="avatar-wrapper">' +
+                                '<div class="avatar avatar-sm me-3">' +
+                                '<img src="' + avatar_src + '" alt="Avatar" class="rounded-circle">' +
+                                '</div>' +
+                                '</div>' +
+                                '<div class="d-flex flex-column">' +
+                                '<a href="javascript:" class="text-body text-truncate">' +
+                                '<span class="fw-medium">' + row.user.name + '</span>' +
+                                '</a>' +
+                                '<small class="text-muted">' + row.user.email + '</small>' +
+                                '</div>' +
+                                '</div>'
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return '<a href="http://t.me/' + row.user.telegram + '">@' + row.user.telegram + ' <i class="bx bx-link-external"></i></a>'
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return '<b>' + decodeRights(row.level) + '</b>'
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            var statuses = {
+                                1: 'Активен',
+                                2: 'Покинул',
+                                3: 'Выгнан',
+                                4: 'Заблокирован',
+                                5: 'Разблокирован'
+                            }
+
+                            var colors = {
+                                1: 'success',
+                                2: 'warning',
+                                3: 'warning',
+                                4: 'danger',
+                                5: 'warning'
+                            }
+
+                            return '<span class="badge bg-label-' + colors[row.status] + '">' + statuses[row.status] + '</span>'
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+
+
+                            var actions = ''
+
+                            if (row.status === 1) {
+                                var arg = row.level + ", '" + row.user.name + "', " + row.user.id
+                                actions += '<a href="javascript:" onclick="showMemeber(' + arg + ')" data-bs-toggle="modal" data-bs-target="#modal_edit_member"><i class="bx bx-edit-alt" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                    '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                    '                           data-bs-original-title="Изменить"></i></a>'
+
+                                actions += '<a href="javascript:kickUser(' + row.user.id + ')"><i class="bx bx-x" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                    '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                    '                           data-bs-original-title="Выгнать"></i></a>'
+                            }
+
+                            if (row.status === 4) {
+                                actions += '<a href="javascript:unblockUser(' + row.user.id + ')"><i class="bx bx-check" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                    '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                    '                           data-bs-original-title="Разблокировать"></i></a>'
+                            } else {
+                                actions += '<a href="javascript:blockUser(' + row.user.id + ')"><i class="bx bx-block" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                    '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                    '                           data-bs-original-title="Заблокировать"></i></a>'
+                            }
+
+                            return actions
+                        }
+                    },
+
+                ],
+                "order": [[0, "desc"]]
+            });
+
+            document.getElementById('mem-ldr').style.display = 'none';
+            document.getElementById('mem-div').style.display = 'block';
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        },
+        error: function (data) {
+            toastr.error('Ошибка загрузки участников: ' + data.responseJSON.detail)
+            document.getElementById('loading-members').style.display = 'none';
+        }
+
+    });
+
+    function calculateDecimalNValue() {
+        const checkboxes = document.querySelectorAll('input[name="Erights"]:checked');
+        let result = 0;
+
+        checkboxes.forEach((checkbox) => {
+            result += Math.pow(2, parseInt(checkbox.value));
+        });
+
+        return result;
+    }
+
+    function UpdateMember(user_id) {
+
+        var new_level = calculateDecimalNValue()
+        var modal_href = document.getElementById('modal_href_save');
+
+        modal_href.classList.add('disabled')
+
+        $.ajax({
+            type: "POST",
+            url: '/organizations/updateMember?member_id=' + user_id + '&level=' + new_level + '&org_id=' + id,
+            success: function () {
+                toastr.success('Сохранено')
+
+                var u = '/organizations/readOrganizationMemberships?org_id=' + id;
+                dt_refresh('dt_user_members', u)
+
+            },
+            error: function () {
+                toastr.error('Ошибка выполнения операции')
+                modal_href.classList.remove('disabled')
+            }
+        })
+
+    }
+
+    function showMemeber(level, username, user_id) {
+        var modal_body = document.getElementById('modal_edit_member_body');
+        var modal_title = document.getElementById('modal_edit_member_title');
+        var modal_href = document.getElementById('modal_href_save');
+
+        modal_title.innerHTML = username
+        modal_body.style.display = 'none'
+        modal_href.classList.add('disabled')
+
+        const checkboxes = document.querySelectorAll('input[name="Erights"]');
+
+        checkboxes.forEach(checkbox => {
+            const value = parseInt(checkbox.value);
+            const bitIsSet = (level & (1 << value)) !== 0;
+            checkbox.checked = bitIsSet;
+        });
+
+        modal_body.style.display = 'block'
+        modal_href.classList.remove('disabled')
+        modal_href.href = 'javascript:UpdateMember(' + user_id + ')'
+
+    }
+</script>
+
+
+</script>
+
+<!-- Create Inv -->
+<script>
+    function calculateDecimalValue() {
+        const checkboxes = document.querySelectorAll('input[name="rights"]:checked');
+        let result = 0;
+
+        checkboxes.forEach((checkbox) => {
+            result += Math.pow(2, parseInt(checkbox.value));
+        });
+
+        return result;
+    }
+
+    var checkboxes = document.querySelectorAll('input[name="rights"]');
+
+    function calcOnChange() {
+        var levelCounter = document.getElementById('level-counter')
+        var levelCounted = calculateDecimalValue()
+        levelCounter.innerText = 'Уровень: ' + levelCounted
+    }
+
+    checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', calcOnChange);
+    });
+
+    document.getElementById('create-invitation-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        const amountInput = document.getElementById('inv-amount');
+        const expiresInput = document.getElementById('inv-expires');
+
+        if (amountInput.value.length === 0) {
+            toastr.error('Введите максимальное число использований')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        if (expiresInput.value.length === 0) {
+            toastr.error('Введите дату и время истечения действия приглашения')
+            submitButton.classList.remove('disabled');
+            return
+        }
+
+        var level = calculateDecimalValue()
+        var currentPage = window.location.pathname;
+        var parts = currentPage.split('/');
+        var org_id = parts[parts.length - 1];
+
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/organizations/createInvitation', currentDomain);
+        url.searchParams.append('org_id', org_id);
+        url.searchParams.append('level', level);
+        url.searchParams.append('expires', expiresInput.value);
+        url.searchParams.append('amount', amountInput.value);
+        submitButton.classList.remove('disabled');
+
+        $.ajax({
+            url: url,
+            method: 'post',
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail)
+                submitButton.classList.remove('disabled');
+            }
+        });
+    });
+</script>
+
+<!-- Get Invs -->
+<script>
+
+    var RTS = {
+        1: 'Товары',
+        2: 'Выкупы',
+        3: 'Отзывы',
+        4: 'Заказы',
+        5: 'Кошелек'
+    }
+
+    function decodeRights(lvl) {
+        var s = ''
+        for (var n in RTS) {
+            if ((lvl & (1 << n)) !== 0) {
+                s += RTS[n] + ', '
+            }
+        }
+
+        if (s.length > 0) {
+            s = s.substring(0, s.length - 2)
+        }
+        return s
+    }
+
+
+    $.ajax({
+
+        url: '/organizations/readInvitations?org_id=' + id,
+        type: 'GET',
+
+        success: function (data) {
+            $('#dt_user_invitations').DataTable({
+                "data": data,
+                "paging": true,
+                "pageLength": 3,
+                "lengthMenu": [[3], [3]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {
+                        render: function (data, type, row) {
+                            return '<span class="text-nowrap"><b>' + row.code + '</b></span>'
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return decodeRights(row.level)
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return moment(row.created).format('DD.MM.YYYY HH:mm')
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return moment(row.expires).format('DD.MM.YYYY HH:mm')
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return row.usages.length
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            return row.amount - row.usages.length
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+                            var actions = ''
+                            actions += '<a href="javascript:disableInv(' + row.id + ')"><i class="bx bx-x" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                '                           data-bs-original-title="Удалить"></i></a>'
+                            return actions
+                        }
+                    },
+
+                ],
+                "order": [[0, "desc"]]
+            });
+
+            $('[data-bs-toggle="tooltip"]').tooltip();
+            document.getElementById('inv-ldr').style.display = 'none';
+            document.getElementById('inv-div').style.display = 'block';
+        },
+        error: function (data) {
+            toastr.error('Ошибка загрузки приглашений: ' + data.responseJSON.detail)
+            document.getElementById('loading-invs').style.display = 'none';
+        }
+    });
+</script>
+
+<script>
+
+    $.ajax({
+
+        url: '/payments/currentLevel?org_id=' + id,
+        type: 'GET',
+
+        success: function (current) {
+
+            var curr_level = document.getElementById('current_level')
+            if (current.personal) {
+                curr_level.innerHTML = '<div class="card border-secondary border shadow-none">\n' +
+                    '                    <div class="card-body position-relative">\n' +
+                    '                        <div class="position-absolute end-0 me-4 top-0 mt-4">\n' +
+                    '                            <span class="badge bg-label-secondary">PERSONAL</span>\n' +
+                    '                        </div>\n' +
+                    '                        <div class="my-3 pt-2 text-center pt-4">\n' +
+                    '                            <i class="bx bxs-zap text-warning"></i>\n' +
+                    '                        </div>\n' +
+                    '                        <h3 class="card-title text-center text-capitalize mb-1">' + current.level.title + '</h3>\n' +
+                    '                        <p class="text-center"><i class="bx bx-infinite"></i></p>\n' +
+                    '                        <hr class="mx-n4 mb-4">\n' +
+                    '                        <div class="p-2">\n' +
+                    '\n' +
+                    '                            <h6>Стоимость услуг</h6>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Выкуп</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_buy.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Логистика</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_collect.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Отзыв</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_review.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Отзыв с фото</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_review_media.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Отзыв по запросу</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_review_request.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                        </div>\n' +
+                    '                    </div>\n' +
+                    '                </div>'
+            } else {
+
+                var stars = ''
+                for (var i = 1; i <= current.level.number; i += 1)
+
+                    stars += '<i class="bx bxs-star text-warning me-1"></i>'
+
+                curr_level.innerHTML = '<div class="card border border shadow-none">\n' +
+                    '                    <div class="card-body position-relative">\n' +
+                    '                        <div class="my-3 pt-2 text-center">\n' + stars +
+                    '                        </div>\n' +
+                    '                        <h3 class="card-title text-center text-capitalize mb-1">' + current.level.title + '</h3>\n' +
+                    '                        <p class="text-center">до воскресенья</p>\n' +
+                    '                        <hr class="mx-n4 mb-4">\n' +
+                    '                        <div class="p-2">\n' +
+                    '\n' +
+                    '                            <h6>Стоимость услуг</h6>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Выкуп</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_buy.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Логистика</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_collect.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Отзыв</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_review.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Отзыв с фото</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_review_media.toLocaleString('ru-RU') + '</dd>\n' +
+                    '\n' +
+                    '                                <dt class="col-6 fw-normal">Отзыв по запросу</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + current.level.price_review_request.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                        </div>\n' +
+                    '                    </div>\n' +
+                    '                </div>'
+
+            }
+
+            $.ajax({
+
+                url: '/payments/futureLevel?org_id=' + id,
+                type: 'GET',
+
+                success: function (future) {
+                    var ul_el = document.getElementById('levels_all')
+                    var level_modals_div = document.getElementById('level_modals')
+                    var li_els = ''
+                    var level_modals = ''
+
+
+                    if (future.all.length > 0) {
+
+                        var stars = ''
+                        for (var y = 1; y <= future.all[0].number; y += 1)
+
+                            stars += '<i class="bx bxs-star text-warning me-1"></i>'
+
+                        level_modals += '<div class="modal fade" id="level_' + future.all[0].id + '" aria-labelledby="modalToggleLabel-' + future.all[0].id + '" tabindex="-1" style="display: none;"\n' +
+                            '         aria-hidden="true">\n' +
+                            '        <div class="modal-dialog modal-dialog-centered">\n' +
+                            '            <div class="modal-content">\n' +
+                            '                <div class="modal-header">\n' +
+                            '                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                            '                </div>\n' +
+                            '                <div class="modal-body">' + '<div class="card border border shadow-none">\n' +
+                            '                    <div class="card-body position-relative">\n' +
+                            '                        <div class="my-3 text-center">\n' + stars +
+                            '                        </div>\n' +
+                            '                        <h3 class="card-title text-center text-capitalize mb-1">' + future.all[0].title + '</h3>\n' +
+                            '                        <p class="text-center">' + 0 + '-' + (future.all[0].amount - 1) + ' выкупов в неделю</p>\n' +
+                            '                        <hr class="mx-n4 mb-4">\n' +
+                            '                        <div class="p-2">\n' +
+                            '\n' +
+                            '                            <h6>Стоимость услуг</h6>\n' +
+                            '                            <dl class="row mb-0">\n' +
+                            '                                <dt class="col-6 fw-normal">Выкуп</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[0].price_buy.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Логистика</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[0].price_collect.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Отзыв</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[0].price_review.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Отзыв с фото</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[0].price_review_media.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Отзыв по запросу</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[0].price_review_request.toLocaleString('ru-RU') + '</dd>\n' +
+                            '                            </dl>\n' +
+                            '                        </div>\n' +
+                            '                    </div>\n' +
+                            '                </div>' +
+                            '                </div>' +
+                            '            </div>\n' +
+                            '        </div>\n' +
+                            '    </div>'
+
+
+                        li_els += '<li class="list-group-item list-group-timeline-success">\n' +
+                            '                            <div class="row">\n' +
+                            '                                <div class="col-4">\n' +
+                            '                                    <span class="text-nowrap"> <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#level_' + future.all[0].id + '">' + future.all[0].title + '</a></span>\n' +
+                            '                                </div>\n' +
+                            '                                <div class="col-4">\n' +
+                            '                                    <span class="text-nowrap"> ' + '<i class="bx bx-check"></i>' + '</span>\n' +
+                            '                                </div>\n' +
+
+                            '                                <div class="col pt-1">\n' +
+                            '                                    <div class="progress">\n' +
+                            '                                        <div class="progress-bar" role="progressbar" style="width: ' + 100 + '%;"\n' +
+                            '                                             aria-valuenow="' + 100 + '"\n' +
+                            '                                             aria-valuemin="0" aria-valuemax="100">' +
+                            '                                        </div>\n' +
+                            '                                    </div>\n' +
+                            '                                </div>\n' +
+                            '                            </div>\n' +
+                            '                        </li>'
+                    }
+
+                    for (var i = 1; i < future.all.length; i += 1) {
+
+                        var li_color = 'secondary'
+
+
+                        var now = future.purchases
+                        var of = future.all[i - 1].amount
+
+                        var percent = (100 / of * now).toFixed(1);
+                        var p_on_bar = percent
+                        var s_title = 'еще ' + (of - now) + ' выкупов'
+                        var p_label = ''
+
+                        if (percent >= 100) {
+                            p_on_bar = 100
+                            s_title = '<i class="bx bx-check"></i>'
+                            li_color = 'success'
+                        }
+
+                        if (percent > 15) {
+                            p_label = percent + '%'
+                            if (percent >= 100) {
+                                p_label = ''
+                            }
+                        }
+
+                        li_els += '<li class="list-group-item list-group-timeline-' + li_color + '">\n' +
+                            '                            <div class="row">\n' +
+                            '                                <div class="col-4">\n' +
+                            '                                    <span class="text-nowrap"> <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#level_' + future.all[i].id + '">' + future.all[i].title + '</a></span>\n' +
+                            '                                </div>\n' +
+                            '                                <div class="col-4">\n' +
+                            '                                    <span class="text-nowrap"> ' + s_title + '</span>\n' +
+                            '                                </div>\n' +
+
+                            '                                <div class="col pt-1">\n' +
+                            '                                    <div class="progress">\n' +
+                            '                                        <div class="progress-bar" role="progressbar" style="width: ' + p_on_bar + '%;"\n' +
+                            '                                             aria-valuenow="' + p_on_bar + '"\n' +
+                            '                                             aria-valuemin="0" aria-valuemax="100">' + p_label +
+                            '                                        </div>\n' +
+                            '                                    </div>\n' +
+                            '                                </div>\n' +
+                            '                            </div>\n' +
+                            '                        </li>'
+
+                        stars = ''
+                        for (y = 1; y <= future.all[i].number; y += 1)
+
+                            stars += '<i class="bx bxs-star text-warning me-1"></i>'
+
+                        level_modals += '<div class="modal fade" id="level_' + future.all[i].id + '" aria-labelledby="modalToggleLabelLevel-' + future.all[i].id + '"  style="display: none;"\n' +
+                            '         aria-hidden="true">\n' +
+                            '        <div class="modal-dialog modal-dialog-centered ">\n' +
+                            '            <div class="modal-content">\n' +
+                            '                <div class="modal-header">\n' +
+                            '                    <h5 class="modal-title" id="modalToggleLabelLevel-' + future.all[i].id + '"></h5>\n' +
+                            '                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                            '                </div>\n' +
+                            '                <div class="modal-body">' + '<div class="card border border shadow-none">\n' +
+                            '                    <div class="card-body position-relative">\n' +
+                            '                        <div class="my-3 text-center">\n' + stars +
+                            '                        </div>\n' +
+                            '                        <h3 class="card-title text-center text-capitalize mb-1">' + future.all[i].title + '</h3>\n' +
+                            '                        <p class="text-center">' + of + '-' + (future.all[i].amount - 1) + ' выкупов в неделю</p>\n' +
+                            '                        <hr class="mx-n4 mb-4">\n' +
+                            '                        <div class="p-2">\n' +
+                            '\n' +
+                            '                            <h6>Стоимость услуг</h6>\n' +
+                            '                            <dl class="row mb-0">\n' +
+                            '                                <dt class="col-6 fw-normal">Выкуп</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[i].price_buy.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Логистика</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[i].price_collect.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Отзыв</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[i].price_review.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Отзыв с фото</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[i].price_review_media.toLocaleString('ru-RU') + '</dd>\n' +
+                            '\n' +
+                            '                                <dt class="col-6 fw-normal">Отзыв по запросу</dt>\n' +
+                            '                                <dd class="col-6 fw-medium text-end">₽ ' + future.all[i].price_review_request.toLocaleString('ru-RU') + '</dd>\n' +
+                            '                            </dl>\n' +
+                            '                        </div>\n' +
+                            '                    </div>\n' +
+                            '                </div>' +
+                            '                </div>' +
+                            '            </div>\n' +
+                            '        </div>\n' +
+                            '    </div>'
+                    }
+
+
+                    ul_el.innerHTML = li_els
+                    level_modals_div.innerHTML = level_modals
+                },
+                error: function (data) {
+                    toastr.error('Ошибка загрузки уровней')
+                    toastr.error(data.responseJSON.detail)
+                }
+            });
+        },
+        error: function (data) {
+            toastr.error('Ошибка загрузки уровней')
+            toastr.error(data.responseJSON.detail)
+        }
+    });
+
+
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .blurred {
+        filter: blur(5px);
+    }
+</style>
+
+<div class="flex-grow-1" id="page_container">
+    <div class="row g-6">
+        <div class="col-xxl-4">
+            <div class="col-lg mb-md-0 mb-4" id="current_level">
+
+            </div>
+        </div>
+
+        <div class="col-xxl-8 mt-4 mt-xxl-0">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-1" id="org-name">Организация
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="org-ldr"></span>
+                    </h5>
+                    <small>Прогноз уровня с понедельника. <a href="javascript:" data-bs-toggle="modal"
+                                                             data-bs-target="#modalCenter">Как это работает?</a></small>
+                </div>
+                <div class="card-body blurred" id="org-div" style="display: none">
+                    <ul class="list-group list-group-timeline" id="levels_all">
+
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-auto mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-1">Участники вашей организации
+                    <a href="javascript:var u = '/organizations/readOrganizationMemberships?org_id=' + id; dt_refresh('dt_user_members', u)"
+                       id="rb1">
+                        <i class="bx bx-refresh" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                           data-bs-original-title="Обновить"></i>
+                    </a>
+                    <span class="spinner-border spinner-border-sm text-primary" role="status" id="mem-ldr"></span>
+                </h5>
+                <small class="card-subtitle">
+                    Управлять участниками
+                </small>
+            </div>
+            <div class="card-body table-responsive" id="mem-div" style="display: none;">
+                <table id="dt_user_members" class="datatables-ajax table table-bordered dataTable no-footer">
+                    <thead>
+                    <tr>
+                        <th>Имя</th>
+                        <th>Telegram</th>
+                        <th>Права</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-auto mt-4">
+        <div class="">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-1">Активные приглашения в организацию
+                        <a href="javascript:" data-bs-toggle="offcanvas" data-bs-target="#off-create-invitation"
+                           aria-controls="off-create-invitation">
+                            <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Создать"></i>
+                        </a>
+                        <a href="javascript:var u = '/organizations/readInvitations?org_id=' + id; dt_refresh('dt_user_invitations', u)"
+                           id="rb2">
+                            <i class="bx bx-refresh" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Обновить"></i>
+                        </a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="inv-ldr"></span>
+                    </h5>
+                    <small class="card-subtitle">
+                        Приглашайте коллег в свою организацию для совместной
+                        работы. У коллег ваша организация будет отображаться в разделе "Другие
+                        организации" бокового меню
+                    </small>
+                </div>
+                <div class="card-body table-responsive" id="inv-div" style="display: none;">
+                    <table id="dt_user_invitations" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>Код</th>
+                            <th>Права</th>
+                            <th>Создано</th>
+                            <th>Истекает</th>
+                            <th>Использовано</th>
+                            <th>Осталось</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <div class="offcanvas offcanvas-start" id="off-create-invitation">
+        <div class="offcanvas-header">
+            <h5 id="off-create-invitation-label" class="offcanvas-title">Новое приглашение</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Закрыть"></button>
+        </div>
+        <div class="offcanvas-body my-auto mx-0 ">
+            <form id="create-invitation-form">
+                <div class="mb-3 row">
+                    <label for="inv-amount" class="form-label">Макс. использований</label>
+                    <div class="col-md-10">
+                        <input class="form-control" type="number" value="5" id="inv-amount">
+                    </div>
+                </div>
+                <div class="mb-4 row">
+                    <label for="inv-expires" class="form-label">Истекает</label>
+                    <div class="col-md-10">
+                        <input class="form-control" type="datetime-local" id="inv-expires">
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="1" id="R1" name="rights">
+                    <label class="form-check-label" for="R1">Доступ к товарам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="2" id="R2" name="rights">
+                    <label class="form-check-label" for="R2">Доступ к задачам на выкуп</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="3" id="R3" name="rights">
+                    <label class="form-check-label" for="R3">Доступ к отзывам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="4" id="R4" name="rights">
+                    <label class="form-check-label" for="R4">Доступ к статусам заказов</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="5" id="R5" name="rights">
+                    <label class="form-check-label" for="R5">Доступ к кошельку</label>
+                </div>
+                <small style="display: none;" id="level-counter">Уровень: 0</small>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalCenter" tabindex="-1" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCenterTitle">Система лояльности</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Цена за выкупы динамическая и зависит от объёма ваших выкупов, которые вы заказали на предшествующей
+                    неделе.</p>
+
+                <p>Если вы только начинаете, то на первую неделю у вас будет стартовый Уровень 1. По итогам этой недели
+                    будет происходить подсчёт количества совершённых выкупов и ваш уровень будет повышаться: чем больше
+                    выкупов, тем ниже будет цена за 1 выкуп.</p>
+
+                <p><b>Пример:</b> за 1-ю неделю в сделаете 100 выкупов, значит со следующей недели (с понедельника) у
+                    вас
+                    применится Уровень 2. Если за вторую неделю работы вы сделаете уже 300 выкупов, то на 3-ю неделю ваш
+                    Уровень поднимется сразу до Уровня 5 и вы получите минимальную цену на услугу выкупов.</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modal_edit_member" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal_edit_member_title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modal_edit_member_body">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="1" id="RE1" name="Erights">
+                    <label class="form-check-label" for="RE1">Доступ к товарам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="2" id="RE2" name="Erights">
+                    <label class="form-check-label" for="RE2">Доступ к задачам на выкуп</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="3" id="RE3" name="Erights">
+                    <label class="form-check-label" for="RE3">Доступ к отзывам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="4" id="RE4" name="Erights">
+                    <label class="form-check-label" for="RE4">Доступ к статусам заказов на WB</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="5" id="RE5" name="Erights">
+                    <label class="form-check-label" for="RE5">Доступ к кошельку</label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <a href="" class="btn btn-label-primary" id="modal_href_save">Сохранить</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="level_modals"></div>
+{% endblock %}

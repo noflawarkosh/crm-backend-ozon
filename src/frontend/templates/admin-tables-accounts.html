@@ -1,0 +1,193 @@
+{% extends "!base-admin.html" %}
+{% block title %}Аккаунты | {% endblock %}
+{% block js %}
+<script>
+
+    function updateAccountStatus(id, is_active) {
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({accounts: [{id: id, is_active: is_active}]}),
+            contentType: "application/json; charset=utf-8",
+            success: function () {
+                var msg = 'Данные пользователя обновлены'
+
+                if (is_active === true) {
+                    msg = 'Аккаунт активирован'
+                }
+
+                if (is_active === false) {
+                    msg = 'Акакунт деактивирован'
+                }
+
+                toastr.success(msg)
+                dt_refresh('dt_accounts', '/admin/get/accounts')
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/accounts',
+        success: function (data) {
+            $('#dt_accounts').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {data: 'number'},
+                    {data: 'name'},
+                    {
+                        "render": function (data, type, row) {
+                            return row.reg_date === null ? 'Не указано' : moment(row.reg_date).format('DD.MM.YYYY HH:mm')
+                        }
+                    },
+
+                    {
+                        data: 'is_active',
+                        "render": function (data, type, row) {
+
+                            var c = 'warning'
+                            var cm = 'Не указано'
+
+                            if (data === true) {
+                                c = 'success'
+                                cm = 'Да'
+                            }
+
+                            if (data === false) {
+                                c = 'danger'
+                                cm = 'Нет'
+                            }
+
+                            return '<span class="badge bg-label-' + c + '">' + cm + '</span>'
+                        }
+                    },
+                    {
+                        data: 'address',
+                        "render": function (data, type, row) {
+                            var st = 'danger'
+
+                            if (data.is_active === true) {
+                                st = 'success'
+                            }
+
+                            return '<div class="text-nowrap"><span class="badge badge-dot bg-' + st + ' me-1"></span><span class="text-nowrap">' + data.address + '</span></div>'
+                        }
+                    },
+                    {
+                        data: "server",
+                        "render": function (data, type, row) {
+                            var st = 'danger'
+
+                            if (data.is_active === true) {
+                                st = 'success'
+                            }
+
+                            return '<div class="text-nowrap"><span class="badge badge-dot bg-' + st + ' me-1"></span><span class="text-nowrap">' + data.name + '</span></div>'
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            var edit = '<a href="/admin-edit/accounts/' + row['id'] + '"><i class="bx bx-edit-alt"></i></a>'
+
+                            if (row.is_active === true) {
+                                edit += '<a href="javascript:updateAccountStatus(' + row['id'] + ', false)"><i class="bx bx-block"></i></a>'
+                            }
+
+                            if (row.is_active === false) {
+                                edit += '<a href="javascript:updateAccountStatus(' + row['id'] + ', true)"><i class="bx bx-check"></i></a>'
+                            }
+                            return edit
+                        }
+                    }
+                ],
+
+                "order": [[0, "desc"]],
+
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+            });
+
+            document.getElementById('accs_ldr').style.display = 'none'
+        },
+        error: function () {
+            toastr.error('Ошибка получения аккаунтов')
+            document.getElementById('accs_ldr').style.display = 'none'
+
+        }
+    })
+
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Аккаунты
+                        <a href="javascript:dt_refresh('dt_accounts', '/admin/get/accounts')" id="rb"><i
+                                class="bx bx-refresh"></i>
+                        </a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="accs_ldr"></span>
+                    </h5>
+                </div>
+                <div class="card-datatable table-responsive p-4">
+                    <table id="dt_accounts" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Номер</th>
+                            <th>Имя</th>
+                            <th>Дата регистрации</th>
+                            <th>Активен</th>
+                            <th>Адрес</th>
+                            <th>Сервер</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

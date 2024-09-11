@@ -1,0 +1,908 @@
+{% extends "!base-admin.html" %}
+{% block title %}Управление кошельком | {% endblock %}
+{% block head %}
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+
+{% endblock %}
+{% block js %}
+
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<script>
+
+    const url = window.location.href;
+    const urlObj = new URL(url);
+    const params = new URLSearchParams(urlObj.search);
+    const org_id = params.get('org_id')
+
+    $.ajax({
+        url: '/admin/get/organizations_full_forced?id=' + org_id,
+        type: 'GET',
+        success: function (data) {
+
+            if (data.length !== 1) {
+                toastr.error('Организация не нейдена')
+            }
+            data = data[0]
+
+
+            var contacts = []
+
+            var telegram = '—'
+            if (data.owner.telegram != null) {
+                telegram = '<a target="_blank" href="https://t.me/' + data.owner.telegram + '"><i class="bx bxl-telegram"></i>' + data.owner.telegram + '</a>'
+            }
+
+            contacts.push(
+                {
+                    'username': data.owner.username,
+                    'name': data.owner.name,
+                    'level': 'Владелец',
+                    'status': '',
+                    'telegram': telegram,
+                }
+            )
+
+
+            $.ajax({
+                url: '/admin/get_managers?org_id=' + org_id,
+                type: 'GET',
+                success: function (mngrs) {
+
+                    for (var i in mngrs) {
+
+                        var telegram = '—'
+                        if (mngrs[i].user.telegram != null) {
+                            telegram = '<a target="_blank" href="https://t.me/' + mngrs[i].user.telegram + '"><i class="bx bxl-telegram"></i>' + mngrs[i].user.telegram + '</a>'
+                        }
+
+                        var statuses = {
+                            1: 'Активен',
+                            2: 'Полкинул',
+                            3: 'Выгнан',
+                            4: 'Заблокирован',
+                            5: 'Разблокирован'
+                        };
+
+                        var colors = {
+                            1: 'success',
+                            2: 'warning',
+                            3: 'warning',
+                            4: 'danger',
+                            5: 'warning'
+                        }
+
+                        var arg = mngrs[i].level + ", '" + mngrs[i].user.username + "', " + mngrs[i].user.id + ", " + org_id + ", " + mngrs[i].status
+
+
+                        contacts.push(
+                            {
+                                'username': mngrs[i].user.username,
+                                'name': mngrs[i].user.name,
+                                'level': '<a href="javascript:" onclick="showMemeber(' + arg + ');" data-bs-toggle="modal" data-bs-target="#modal_edit_member">Менеджер</a>',
+                                'status': '<span class="badge bg-label-' + colors[mngrs[i].status] + '">' + statuses[mngrs[i].status] + '</span>',
+                                'telegram': telegram,
+                            }
+                        )
+                    }
+
+                    $('#dt_contacts').DataTable({
+                        data: contacts,
+                        "paging": true,
+                        "pageLength": 5,
+                        "lengthMenu": [[5, 10, -1], [5, 10, "All"]],
+                        "searching": true,
+                        "ordering": true,
+
+                        columns: [
+                            {
+                                data: 'username', render: function (data, type, row) {
+                                    return '<span class="text-nowrap">' + data + '</span>'
+                                }
+                            },
+                            {
+                                data: 'name', render: function (data, type, row) {
+                                    return '<span class="text-nowrap">' + data + '</span>'
+                                }
+                            },
+                            {
+                                data: 'level', render: function (data, type, row) {
+                                    return '<span class="text-nowrap">' + data + '</span>'
+                                }
+                            },
+                            {
+                                data: 'status', render: function (data, type, row) {
+                                    return '<span class="text-nowrap">' + data + '</span>'
+                                }
+                            },
+                            {
+                                data: 'telegram', render: function (data, type, row) {
+                                    return '<span class="text-nowrap">' + data + '</span>'
+                                }
+                            },
+
+                        ],
+                        "order": [[3, "asc"]]
+                    });
+
+                }
+            })
+
+
+            var st = {
+                1: 'Ожидает подтверждение',
+                2: 'Активна',
+                3: 'Приостановлена',
+                4: 'Удалена'
+            }
+
+            var telegram = ''
+            if (data.owner.telegram != null) {
+                telegram = ' | <a target="_blank" href="https://t.me/' + data.owner.telegram + '"><i class="bx bxl-telegram"></i>' + data.owner.telegram + '</a>'
+            }
+
+            var server = '—'
+            if (data.server_id !== null) {
+                server = data.server.name
+            }
+
+            var level = '<b class="small">зависит от выкупов</b>'
+            if (data.level_id !== null) {
+                level = data.level.title
+            } else {
+
+            }
+
+            document.getElementById('title').innerHTML = data.title + '<span><a href="/admin-edit/organizations/' + data.id + '"><i class="bx bx-edit-alt"></i></a></span>';
+            document.getElementById('org_id').innerHTML = data.id;
+            document.getElementById('inn').innerHTML = data.inn;
+            document.getElementById('balance_limit').innerHTML = data.balance_limit;
+            document.getElementById('status').innerHTML = st[data.status];
+            document.getElementById('created_at').innerHTML = moment(data.created_at).format('DD.MM.YYYY');
+            document.getElementById('server_id').innerHTML = server;
+            document.getElementById('is_competitor').innerHTML = data.is_competitor ? 'Да' : 'Нет';
+            document.getElementById('level_id').innerHTML = level;
+        }
+    })
+
+    $.ajax({
+        url: '/admin/get/actions',
+        type: 'GET',
+        success: function (data) {
+            var selectElement = $('#action_id');
+
+            $.each(data, function (j, action) {
+                var optionText = action.title
+                var optionValue = action.id
+
+                var option = $('<option>').text(optionText).val(optionValue);
+                selectElement.append(option);
+            });
+            selectElement.selectpicker('refresh');
+            document.getElementById('act_pay_btn').classList.remove('disabled')
+        }
+    })
+
+
+    function actPay() {
+        document.getElementById('act_pay_btn').classList.add('disabled')
+
+        var action_id = document.getElementById('action_id').value
+        var amount = document.getElementById('amount').value
+        var description = document.getElementById('description').value
+
+        if (amount === '') {
+            toastr.error('Введите сумму')
+            document.getElementById('act_pay_btn').classList.remove('disabled')
+            return
+        }
+
+        if (amount < 0) {
+            toastr.error('Сумма должна быть больше или равна нулю')
+            document.getElementById('act_pay_btn').classList.remove('disabled')
+            return
+        }
+
+        if (action_id === '') {
+            toastr.error('Выберите операцию')
+            document.getElementById('act_pay_btn').classList.remove('disabled')
+            return
+        }
+
+        var b_data = {
+            'org_id': org_id,
+            'action_id': action_id,
+            'amount': amount,
+        }
+
+        if (description !== '') {
+            b_data['description'] = description
+        }
+
+        var payload = {}
+        payload['balance'] = [b_data]
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function () {
+                toastr.success('Операция успешно выполнена')
+                document.getElementById('act_pay_btn').classList.remove('disabled');
+                refreshDetails()
+            },
+            error: function () {
+                toastr.error('Ошибка выполнения операции. Проверьте правильность введенных данных')
+                document.getElementById('act_pay_btn').classList.remove('disabled');
+            }
+        })
+
+    }
+
+
+    const firstDate = new Date();
+    const start_year = firstDate.getFullYear();
+    const start_month = String(firstDate.getMonth() + 1).padStart(2, '0');
+    const start_day = String(firstDate.getDate()).padStart(2, '0');
+    const formattedStartDate = `${start_year}-${start_month}-${start_day}`
+
+
+    const secondDate = new Date();
+    const end_year = secondDate.getFullYear();
+    const end_month = String(secondDate.getMonth() + 1).padStart(2, '0');
+    const end_day = String(secondDate.getDate()).padStart(2, '0');
+    const formattedEndDate = `${end_year}-${end_month}-${end_day}`
+
+    var start_date_input = document.getElementById("date_start");
+    var end_date_input = document.getElementById("date_end");
+    var total_div = document.getElementById("total_on_range");
+
+    start_date_input.value = formattedStartDate
+    end_date_input.value = formattedEndDate
+
+    function calcTotal(x) {
+        var add = 0
+        var freeze = 0
+        var spent = 0
+        var unfreezed = 0
+
+        for (i in x) {
+            if (x[i].action_id === 1) {
+                add = add + x[i].amount
+            }
+            if (x[i].action_id === 2) {
+                freeze = freeze + x[i].amount
+            }
+            if (x[i].action_id === 3) {
+                spent = spent + x[i].amount
+            }
+            if (x[i].action_id === 4) {
+                unfreezed = unfreezed + x[i].amount
+            }
+        }
+
+        return {
+            'add': add,
+            'freeze': freeze,
+            'spent': spent,
+            'unfreezed': unfreezed,
+            'total': add + unfreezed - freeze - spent
+        }
+    }
+
+    $.ajax({
+        url: '/admin/getPaymentsDetails?org_id=' + org_id + '&start=' + formattedStartDate + '&end=' + formattedEndDate,
+        method: 'get',
+        success: function (data) {
+
+            if (data.length > 0) {
+                var t = calcTotal(data)
+                total_div.innerHTML = '' +
+                    '<h6>Итого за выбранный период</h6>' +
+                    '<span>Пополнение: ' + t['add'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Заморозка: ' + t['freeze'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Списание: ' + t['spent'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Разморозка: ' + t['unfreezed'].toLocaleString('ru-RU') + ' ₽</span>' +
+                    '<span>Итого: ' + t['total'].toLocaleString('ru-RU') + ' ₽</span>'
+            }
+
+            $('#dt_wallet_details').DataTable({
+                "data": data,
+                "paging": true,
+                "pageLength": 50,
+                "lengthMenu": [[50, 100, 250, -1], [50, 100, 250, "All"]],
+                "searching": true,
+                "ordering": true,
+                autoWidth: false,
+
+                columns: [
+                    {
+                        "data": 'id'
+                    },
+                    {
+                        data: 'date',
+                        "render": function (data, type, row) {
+                            return moment(data).format('DD.MM.YYYY HH:mm:ss')
+                        }
+                    },
+                    {
+                        data: 'amount',
+                        "render": function (data, type, row) {
+                            var sign = '-'
+                            var tx_clr = ''
+
+                            if (row.action_id === 1) {
+                                sign = '+'
+                                tx_clr = 'text-success'
+                            }
+
+                            if (row.action_id === 2) {
+                                sign = '-'
+                                tx_clr = 'text-info'
+                            }
+
+                            if (row.action_id === 3) {
+                                sign = '-'
+                                tx_clr = 'text-danger'
+                            }
+
+                            if (row.action_id === 4) {
+                                sign = '+'
+                                tx_clr = 'text-warning'
+                            }
+
+                            return '<b class="text-nowrap ' + tx_clr + ' ">' + sign + data.toLocaleString('ru-RU') + ' ₽</b>'
+                        }
+                    },
+                    {
+                        data: 'action_id',
+                        "render": function (data, type, row) {
+                            var action = 'Не указано'
+                            var color = 'info'
+                            if (data === 1) {
+                                action = 'Пополнение'
+                                color = 'success'
+                            }
+
+                            if (data === 2) {
+                                action = 'Заморозка'
+                                color = 'info'
+                            }
+
+                            if (data === 3) {
+                                action = 'Списание'
+                                color = 'danger'
+                            }
+
+                            if (data === 4) {
+                                action = 'Разморозка'
+                                color = 'warning'
+                            }
+
+                            return '<span class="badge bg-label-' + color + '">' + action + '</span>'
+                        }
+                    },
+                    {
+                        data: 'description',
+                        "render": function (data, type, row) {
+                            var ds = '—'
+
+                            if (row.description !== null) {
+                                ds = data
+                            }
+                            return ds
+                        }
+                    },
+
+                ],
+
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [1, 2, 3, 4];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+
+                "order": [[1, "desc"]]
+            });
+
+            document.getElementById('refresh_details_btn').classList.remove('disabled')
+
+            if (data.length !== 0) {
+                document.getElementById('pay-plan-btn').classList.remove('disabled')
+                document.getElementById('pay-plan-btn').innerText = 'Оплатить задачи на ' + moment(currentDate).format('DD.MM.YYYY')
+            }
+
+        },
+
+        error: function () {
+            toastr.error('Ошибка загрузки плана')
+
+        }
+
+    });
+
+    function refreshDetails() {
+        document.getElementById('refresh_details_btn').classList.add('disabled')
+        total_div.innerHTML = ''
+        $.ajax({
+
+            url: '/admin/getPaymentsDetails?org_id=' + org_id + '&start=' + start_date_input.value + '&end=' + end_date_input.value,
+            method: 'get',
+
+            success: function (data) {
+
+                var table = $('#dt_wallet_details').DataTable();
+                table.clear()
+                table.draw()
+                table.rows.add(data).draw();
+
+                if (data.length > 0) {
+                    var t = calcTotal(data)
+                    total_div.innerHTML = '' +
+                        '<h6>Итого за выбранный период</h6>' +
+                        '<span>Пополнение: ' + t['add'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Заморозка: ' + t['freeze'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Списание: ' + t['spent'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Разморозка: ' + t['unfreezed'].toLocaleString('ru-RU') + ' ₽</span>' +
+                        '<span>Итого: ' + t['total'].toLocaleString('ru-RU') + ' ₽</span>'
+
+
+                }
+
+                toastr.info('Данные обновлены')
+                document.getElementById('refresh_details_btn').classList.remove('disabled')
+            },
+
+            error: function () {
+                toastr.error('Ошибка загрузки данных. Обновите страницу и повторите попытку')
+                document.getElementById('refresh_details_btn').classList.remove('disabled')
+            }
+
+        });
+    }
+
+
+</script>
+
+
+<script>
+
+    $.ajax({
+        url: '/admin/get/users',
+        type: 'GET',
+        success: function (data) {
+            var selectElement = $('#member_id');
+
+            $.each(data, function (j, action) {
+
+                var telegram = ''
+                if (action.telegram != null) {
+                    telegram = ' (TG: @' + action.telegram + ')'
+                }
+
+                var optionText = action.username + telegram
+                var optionValue = action.id
+
+                var option = $('<option>').text(optionText).val(optionValue);
+                selectElement.append(option);
+            });
+            selectElement.selectpicker('refresh');
+
+        }
+    })
+
+    function calculateDecimalValue() {
+        const checkboxes = document.querySelectorAll('input[name="rights"]:checked');
+        let result = 0;
+
+        checkboxes.forEach((checkbox) => {
+            result += Math.pow(2, parseInt(checkbox.value));
+        });
+
+        return result;
+    }
+
+    function calculateDecimalNValue() {
+        const checkboxes = document.querySelectorAll('input[name="Nrights"]:checked');
+        let result = 0;
+
+        checkboxes.forEach((checkbox) => {
+            result += Math.pow(2, parseInt(checkbox.value));
+        });
+
+        return result;
+    }
+
+    function addMember() {
+
+        var btn = document.getElementById('add_member_btn')
+
+
+
+        var b_data = {
+            'org_id': org_id,
+            'user_id': document.getElementById('member_id').value,
+            'level': calculateDecimalNValue(),
+            'status': 1,
+        }
+
+        var payload = {}
+        payload['members'] = [b_data]
+        btn.classList.add('disabled')
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function () {
+                toastr.success('Сохранено')
+                setTimeout(function () {
+                    location.reload()
+                }, 400);
+
+            },
+            error: function () {
+                toastr.error('Ошибка выполнения операции')
+                btn.classList.remove('disabled')
+            }
+        })
+    }
+
+    function UpdateMember(user_id, org_id) {
+
+        var new_level = calculateDecimalValue()
+        var new_status = document.getElementById('status_number').value
+        var modal_href = document.getElementById('modal_href_save');
+        var b_data = {
+            'org_id': org_id,
+            'user_id': user_id,
+            'level': new_level,
+            'status': new_status,
+        }
+
+        var payload = {}
+        payload['members'] = [b_data]
+        modal_href.classList.add('disabled')
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function () {
+                toastr.success('Сохранено')
+                setTimeout(function () {
+                    location.reload()
+                }, 400);
+
+            },
+            error: function () {
+                toastr.error('Ошибка выполнения операции')
+                modal_href.classList.remove('disabled')
+            }
+        })
+
+    }
+
+    function showMemeber(level, username, user_id, org_id, st) {
+        var modal_body = document.getElementById('modal_edit_member_body');
+        var modal_title = document.getElementById('modal_edit_member_title');
+        var modal_href = document.getElementById('modal_href_save');
+
+        modal_title.innerHTML = username
+        modal_body.style.display = 'none'
+        modal_href.classList.add('disabled')
+
+        const checkboxes = document.querySelectorAll('input[name="rights"]');
+
+        checkboxes.forEach(checkbox => {
+            const value = parseInt(checkbox.value);
+            const bitIsSet = (level & (1 << value)) !== 0;
+            checkbox.checked = bitIsSet;
+        });
+
+        var statuses = {
+            1: 'Активен',
+            2: 'Полкинул',
+            3: 'Выгнан',
+            4: 'Заблокирован',
+            5: 'Разблокирован'
+        }
+
+        $('#status_number option').each(function () {
+            // Устанавливаем selected в true, если value совпадает со значением st
+            if ($(this).val() == st) {
+                $(this).prop('selected', true);
+            } else {
+                // Удаляем атрибут selected, если он есть
+                $(this).removeAttr('selected');
+            }
+        });
+
+        // Обновляем selectpicker после изменения опций
+        $('#status_number').selectpicker('destroy');
+
+        modal_body.style.display = 'block'
+        modal_href.classList.remove('disabled')
+        modal_href.href = 'javascript:UpdateMember(' + user_id + ', ' + org_id + ')'
+
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row mb-3">
+        <div class="col-xl-2 col-lg-2 order-1 order-md-0">
+            <div class="card h-100">
+                <div class="card-body pt-12">
+                    <div class="info-container">
+                        <h5 class="pb-4 border-bottom text-capitalize mt-6 mb-4" id="title">Организация</h5>
+
+                        <ul class="list-unstyled mb-6">
+                            <li class="mb-2">
+                                <span class="h6 me-1">ID:</span>
+                                <span id="org_id"></span>
+                            </li>
+                            <li class="mb-2">
+                                <span class="h6 me-1">ИНН:</span>
+                                <span id="inn"></span>
+                            </li>
+                            <li class="mb-2">
+                                <span class="h6 me-1">Лимит баланса:</span>
+                                <span id="balance_limit"></span>
+                            </li>
+                            <li class="mb-2">
+                                <span class="h6 me-1">Статус:</span>
+                                <span id="status"></span>
+                            </li>
+                            <li class="mb-2">
+                                <span class="h6 me-1">Зарегистрирована:</span>
+                                <span id="created_at"></span>
+                            </li>
+                            <li class="mb-2">
+                                <span class="h6 me-1">Сервер:</span>
+                                <span id="server_id"></span>
+                            </li>
+                            <li class="mb-2">
+                                <span class="h6 me-1">Конкурент:</span>
+                                <span id="is_competitor"></span>
+                            </li>
+
+
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5 col-lg-5 order-1 order-md-0">
+            <div class="card h-100">
+                <div class="card-body pt-12">
+                    <div class="info-container">
+                        <h5 class="pb-4 border-bottom text-capitalize mt-6 mb-4">Участники
+                            <a href="javascript:" data-bs-toggle="offcanvas" data-bs-target="#off-add-member"
+                               aria-controls="off-add-member">
+                                <i class="bx bxs-plus-square"></i>
+                            </a>
+                        </h5>
+                        <div class="table-responsive">
+                            <table id="dt_contacts" class="datatables-ajax table table-bordered dataTable no-footer">
+                                <thead>
+                                <tr>
+                                    <th>Логин</th>
+                                    <th>Имя</th>
+                                    <th>Доступ</th>
+                                    <th>Статус</th>
+                                    <th>Telegram</th>
+                                </tr>
+                                </thead>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-lg-2 order-1 order-md-0">
+            <div class="card h-100">
+                <div class="card-body pt-12">
+                    <div class="info-container">
+                        <h5 class="pb-4 border-bottom text-capitalize mt-6 mb-4">Статистика</h5>
+                        <ul class="list-unstyled mb-6">
+                            <li class="mb-2">
+                                <span class="h6 me-1">Уровень: </span>
+                                <span id="level_id"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-3 order-0 order-md-1">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Касса</h5>
+                </div>
+                <div class="card-body">
+                    <div class="divider text-start mt-0">
+                        <div class="divider-text">Операция</div>
+                    </div>
+                    <div class="col">
+                        <select id="action_id" class="selectpicker w-100" data-style="btn-default"
+                                data-show-subtext="true" data-live-search="true">
+                        </select>
+                    </div>
+                    <div class="divider text-start">
+                        <div class="divider-text">Сумма</div>
+                    </div>
+                    <div class="col">
+                        <input type="number" class="form-control" id="amount">
+                    </div>
+                    <div class="divider text-start">
+                        <div class="divider-text">Описание</div>
+                    </div>
+                    <div class="col mb-3">
+                        <input type="text" class="form-control" id="description">
+                    </div>
+                    <div class="col">
+                        <a href="javascript:actPay()" class="btn btn-primary disabled"
+                           id="act_pay_btn">Выполнить</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Детализация кошелька</h5>
+                    <div class="card-body table-responsive">
+                        <div class="row mt-3 mb-3">
+                            <div class="col-lg-auto">
+                                <input type="date" class="form-control" id="date_start">
+                            </div>
+                            <div class="col-lg-auto">
+                                <input type="date" class="form-control" id="date_end">
+                            </div>
+                            <div class="col-lg-auto">
+                                <a href="javascript:refreshDetails()" class="btn btn-primary disabled"
+                                   id="refresh_details_btn">Показать</a>
+                            </div>
+                        </div>
+                        <div class="row mt-3 mb-3" id="total_on_range"></div>
+                        <table id="dt_wallet_details" class="datatables-ajax table table-bordered dataTable no-footer ">
+                            <thead>
+                            <tr>
+                                <th>№ операции</th>
+                                <th>Дата и время</th>
+                                <th>Сумма</th>
+                                <th>Тип операции</th>
+                                <th>Описание</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal_edit_member" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal_edit_member_title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modal_edit_member_body">
+                <select id="status_number" class="form-control selectpicker mb-3" data-style="btn-default"
+                        data-show-subtext="true" data-live-search="true">
+                    <option value="1">Активный</option>
+                    <option value="2">Покинул</option>
+                    <option value="3">Выгнан</option>
+                    <option value="4">Заблокирован</option>
+                    <option value="5">Разблокирован</option>
+
+                </select>
+
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="1" id="R1" name="rights">
+                    <label class="form-check-label" for="R1">Доступ к товарам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="2" id="R2" name="rights">
+                    <label class="form-check-label" for="R2">Доступ к задачам на выкуп</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="3" id="R3" name="rights">
+                    <label class="form-check-label" for="R3">Доступ к отзывам</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="4" id="R4" name="rights">
+                    <label class="form-check-label" for="R4">Доступ к статусам заказов на WB</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="5" id="R5" name="rights">
+                    <label class="form-check-label" for="R5">Доступ к кошельку</label>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <a href="" class="btn btn-label-primary" id="modal_href_save">Сохранить</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <div class="offcanvas offcanvas-start" id="off-add-member">
+        <div class="offcanvas-header">
+            <h5 id="off-add-member-label" class="offcanvas-title">Новый участник</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Закрыть"></button>
+        </div>
+        <div class="offcanvas-body my-auto mx-0 ">
+
+            <select id="member_id" class="form-control selectpicker mb-3" data-style="btn-default"
+                    data-live-search="true"></select>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="1" id="RN1" name="Nrights">
+                <label class="form-check-label" for="RN1">Доступ к товарам</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="2" id="RN2" name="Nrights">
+                <label class="form-check-label" for="RN2">Доступ к задачам на выкуп</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="3" id="RN3" name="Nrights">
+                <label class="form-check-label" for="RN3">Доступ к отзывам</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="4" id="RN4" name="Nrights">
+                <label class="form-check-label" for="RN4">Доступ к статусам заказов на WB</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="5" id="RN5" name="Nrights">
+                <label class="form-check-label" for="RN5">Доступ к кошельку</label>
+            </div>
+            <div class="mt-3">
+                <a href="javascript:addMember()" class="btn btn-primary" id="add_member_btn" >Добавить</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

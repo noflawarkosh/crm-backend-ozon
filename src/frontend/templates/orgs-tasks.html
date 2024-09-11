@@ -1,0 +1,802 @@
+{% extends "!base.html" %}
+{% block title %}Планирование{% endblock %}
+
+{% block head %}
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/apex-charts/apex-charts.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/css/pages/card-analytics.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+
+{% endblock %}
+
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/app-ecommerce-dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<script>
+
+    var ordersToPay = []
+    var currentDate = new Date()
+    const currentHour = currentDate.getHours();
+
+
+    if (currentHour > 9) {
+        currentDate = new Date(currentDate.getTime() + 86400000)
+    } else {
+        currentDate.setDate(currentDate.getDate());
+    }
+
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+
+    const formattedDate = `${year}-${month}-${day}`
+
+    var dateInput = document.getElementById('plan-date');
+    dateInput.value = formattedDate
+
+    dateInput.addEventListener('change', function () {
+
+        var selectedDate = dateInput.value;
+        dateInput.disabled = true
+        drawPlan(selectedDate);
+        document.getElementById('page_ldr').style.display = 'none'
+    });
+
+    document.getElementById('divider-text').innerText = 'Запланированные выкупы на ' + moment(currentDate).format('DD.MM.YYYY')
+
+    const url = window.location.href;
+    var arr = url.split('/')
+    var id = arr[arr.length - 1]
+
+
+    $(document).ready(function () {
+        $.ajax({
+            url: '/orders/getPlan?org_id=' + id + '&date=' + formattedDate,
+            method: 'get',
+            success: function (data) {
+
+                var table = $('#dt_plan').DataTable({
+                    "data": data,
+                    "paging": true,
+                    "pageLength": 10,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    "searching": true,
+                    "ordering": true,
+                    autoWidth: false,
+
+                    "columns": [
+                        {
+                            render: function (data, type, row) {
+                                return '<input class="dt-checkboxes form-check-input" type="checkbox" name="dt_lines" id="' + row.id + '">'
+                            }
+                        },
+                        {"data": 'id'},
+                        {
+                            "data": 'product',
+                            "render": function (data, type, row) {
+                                return data.ozon_article
+                            }
+                        },
+                        {
+                            "data": 'product',
+                            "render": function (data, type, row) {
+                                return data.ozon_title
+                            }
+                        },
+                        {
+                            "data": 'product',
+                            "render": function (data, type, row) {
+                                var cell = '—'
+
+                                if (data.ozon_size !== null) {
+                                    cell = data.ozon_size
+                                }
+
+                                return cell
+                            }
+                        },
+                        {
+                            "data": 'ozon_keyword',
+                        },
+
+                        {
+                            "render": function (data, type, row) {
+
+                                var status = 5
+                                var title = 'Не опознан'
+
+
+                                if (row.status === 1) {
+                                    status = 3
+                                    title = 'Не оплачен'
+                                }
+
+                                if (row.status === 2) {
+                                    status = 2
+                                    title = 'Оплачен'
+                                }
+
+                                if (row.status === 3) {
+                                    status = 1
+                                    title = 'Едет'
+                                }
+
+                                if (row.status === 4) {
+                                    status = 1
+                                    title = 'Готов'
+                                }
+
+                                if (row.status === 5) {
+                                    status = 1
+                                    title = 'Получен'
+                                }
+
+                                if (row.status === 6) {
+                                    status = 4
+                                    title = 'Отмена'
+                                }
+
+                                if (row.status === 7) {
+                                    status = 4
+                                    title = 'Отмена'
+                                }
+
+                                var statuses = {
+                                    1: 'success',
+                                    2: 'warning',
+                                    3: 'info',
+                                    4: 'danger',
+                                    5: 'secondary',
+                                }
+
+                                return '<span class="badge bg-label-' + statuses[status] + '">' + title + '</span>'
+                            }
+                        },
+                        {
+                            "render": function (data, type, row) {
+                                var cell = '—'
+                                if (row.description !== null) {
+                                    cell = row.description
+                                }
+                                return cell
+                            }
+                        },
+                        {
+                            "render": function (data, type, row) {
+                                var edit = ''
+
+                                if (row.status === 1) {
+                                    edit += '<a href="javascript:cancelTask(' + row.id + ')"><i class="bx bx-x" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                        '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                        '                           data-bs-original-title="Отменить задачу"></i></a>'
+                                }
+                                return edit
+                            }
+                        }
+                    ],
+                    "order": [[0, "desc"]],
+                });
+
+                document.getElementById('add-plan-btn').classList.remove('disabled')
+                document.getElementById('replace_date').value = moment(currentDate).add(1, 'days').format('YYYY-MM-DD');
+                $('[data-bs-toggle="tooltip"]').tooltip();
+
+                if (data.length !== 0) {
+                    document.getElementById('pay-plan-btn').classList.remove('disabled')
+                    document.getElementById('pay-plan-btn').innerText = 'Оплатить задачи на ' + moment(currentDate).format('DD.MM.YYYY')
+                }
+
+                $('#select-all').on('click', function () {
+                    var rows = table.rows({'search': 'applied'}).nodes();
+                    $('input[type="checkbox"]', rows).prop('checked', this.checked);
+                });
+
+                $('#replace-selected').on('click', function () {
+                    var selected = [];
+                    table.$('input[type="checkbox"]:checked').each(function () {
+                        var rowData = table.row($(this).closest('tr')).data();
+                        selected.push(rowData);
+                    });
+
+                    if (selected.length === 0) {
+                        toastr.error('Выберите задачи для переноса')
+                        return
+                    }
+
+                    var selected_ids = []
+
+                    for (var i = 0; i < selected.length; i++) {
+                        selected_ids.push(selected[i].id)
+                    }
+                    document.getElementById('cancel-selected').classList.add('disabled')
+                    document.getElementById('replace-selected').classList.add('disabled')
+                    $.ajax({
+
+                        url: '/orders/replaceTasks',
+                        method: 'post',
+                        data: JSON.stringify({
+                            'id': selected_ids,
+                            'date': document.getElementById('replace_date').value,
+                            'org_id': id,
+                        }),
+                        contentType: 'application/json',
+
+                        success: function (data) {
+                            document.getElementById('cancel-selected').classList.remove('disabled')
+                            document.getElementById('replace-selected').classList.remove('disabled')
+                            drawPlan(dateInput.value)
+                            toastr.success('Задачи успешно перенесены')
+
+                        },
+                        error: function (data) {
+                            document.getElementById('cancel-selected').classList.remove('disabled')
+                            document.getElementById('replace-selected').classList.remove('disabled')
+                            toastr.error('Ошибка переноса задач')
+                            toastr.error(data.responseJSON.detail)
+                        }
+                    })
+
+                });
+
+                $('#cancel-selected').on('click', function () {
+                    var selected = [];
+                    table.$('input[type="checkbox"]:checked').each(function () {
+                        var rowData = table.row($(this).closest('tr')).data();
+                        selected.push(rowData);
+                    });
+
+                    if (selected.length === 0) {
+                        toastr.error('Выберите задачи для отмены')
+                        return
+                    }
+
+                    var selected_ids = []
+
+                    for (var i = 0; i < selected.length; i++) {
+                        selected_ids.push(selected[i].id)
+                    }
+                    document.getElementById('cancel-selected').classList.add('disabled')
+                    document.getElementById('replace-selected').classList.add('disabled')
+                    $.ajax({
+
+                        url: '/orders/cancelTasks',
+                        method: 'post',
+                        data: JSON.stringify({
+                            'id': selected_ids,
+                            'org_id': id,
+                        }),
+                        contentType: 'application/json',
+
+                        success: function (data) {
+                            drawPlan(dateInput.value)
+                            document.getElementById('cancel-selected').classList.remove('disabled')
+                            document.getElementById('replace-selected').classList.remove('disabled')
+                            toastr.success('Задачи успешно отменены')
+
+                        },
+                        error: function (data) {
+                            document.getElementById('cancel-selected').classList.remove('disabled')
+                            document.getElementById('replace-selected').classList.remove('disabled')
+                            toastr.error('Ошибка переноса задач')
+                            toastr.error(data.responseJSON.detail)
+                        }
+                    })
+
+
+                });
+
+            },
+
+
+            error: function () {
+                toastr.error('Ошибка загрузки плана')
+
+            }
+
+        });
+    });
+
+    function calculatePayment() {
+        var modal_title = document.getElementById('modal_title')
+        var modal_body = document.getElementById('modal_body')
+        var ldr = document.getElementById('pay_ldr')
+
+
+        modal_title.innerText = 'Загрузка данных платежа'
+        modal_body.innerText = ''
+        ldr.style.display = 'block'
+        $.ajax({
+
+            url: '/payments/tasksCheckout?org_id=' + id + '&date=' + dateInput.value,
+            method: 'get',
+
+            success: function (data) {
+                ordersToPay = data.trace
+                modal_body.innerHTML = '<div class="row">\n' +
+                    '                    <div class="col-xl-8 mb-3 mb-xl-0">\n' +
+                    '                        <div class="card-body table-responsive">\n' +
+                    '                            <table id="dt_total" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+                    '                                <thead>\n' +
+                    '                                <tr>\n' +
+                    '                                    <th>№</th>\n' +
+                    '                                    <th>Артикул</th>\n' +
+                    '                                    <th>Размер</th>\n' +
+                    '                                    <th>Товар</th>\n' +
+                    '                                    <th>Комиссия</th>\n' +
+                    '                                    <th>Выкуп</th>\n' +
+                    '                                    <th>Логистика</th>\n' +
+                    '                                    <th>Сумма</th>\n' +
+                    '                                </tr>\n' +
+                    '                                </thead>\n' +
+                    '                            </table>\n' +
+                    '                        </div>\n' +
+                    '                    </div>\n' +
+                    '                    \n' +
+                    '                    <div class="col-xl-4">\n' +
+                    '                        <div class="border rounded p-4 mb-3 pb-3">\n' +
+                    '                            \n' +
+                    '                            <h6>Тариф "' + data.total.level + '"</h6>\n' +
+                    '\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Выкуп</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.per_buy.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Логистика</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.per_collect.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Порог комиссии</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.percent_limit.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Комиссия</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">' + data.total.percent.toLocaleString('ru-RU') + '%</dd>\n' +
+                    '                            </dl>\n' +
+                    '\n' +
+                    '\n' +
+                    '                            <hr class="mx-n4">\n' +
+                    '                            <h6>Итого</h6>\n' +
+                    '\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Товары</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.sum_price_product.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Комиссия</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.sum_price_commission.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Выкуп</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.sum_service_buy.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-normal">Логистика</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.sum_service_collect.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '\n' +
+                    '                            <hr class="mx-n4">\n' +
+                    '                            <dl class="row mb-0">\n' +
+                    '                                <dt class="col-6 fw-medium">К оплате</dt>\n' +
+                    '                                <dd class="col-6 fw-medium text-end">₽ ' + data.total.sum_total.toLocaleString('ru-RU') + '</dd>\n' +
+                    '                            </dl>\n' +
+                    '                        </div>\n' +
+                    '                        \n' +
+                    '                        <div class="d-grid">\n' +
+                    '                            <button class="btn btn-primary btn-next" onclick="payOrders()" id="pay_btn">Оплатить</button>\n' +
+                    '                        </div>\n' +
+                    '                    </div>\n' +
+                    '                </div>'
+
+                $('#dt_total').DataTable({
+                    "data": data.trace,
+                    "paging": true,
+                    "pageLength": 10,
+                    "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    "searching": true,
+                    "ordering": true,
+                    autoWidth: false,
+
+                    "columns": [
+                        {"data": "order_id"},
+                        {"data": "ozon_article"},
+                        {"data": "ozon_size"},
+                        {"data": "price_product"},
+                        {"data": "price_commission"},
+                        {"data": "price_buy"},
+                        {"data": "price_collect"},
+                        {"data": "price_total"},
+                    ],
+                    "order": [[0, "desc"]],
+                });
+
+
+                modal_title.innerText = 'Оплата задач на ' + moment(dateInput.value).format('DD.MM.YYYY')
+                ldr.style.display = 'none'
+            },
+
+            error: function (data) {
+                toastr.error('Ошибка загрузки платежа. ' + data.responseJSON.detail)
+                modal_body.innerText = data.responseJSON.detail
+                ldr.style.display = 'none'
+            }
+
+        });
+    }
+
+    function payOrders() {
+        var pb = document.getElementById('pay_btn')
+        var ldr = document.getElementById('pay_ldr')
+        pb.classList.add('disabled')
+        ldr.style.display = 'block'
+
+
+        var order_ids = []
+        for (var i in ordersToPay) {
+            order_ids.push(ordersToPay[i].order_id)
+        }
+
+        $.ajax({
+            url: '/payments/tasksPay?org_id=' + id,
+            method: 'post',
+            data: JSON.stringify(order_ids),
+            contentType: 'application/json',
+            dataType: 'json',
+
+            success: function (data) {
+                toastr.success('Задачи успешно оплачены')
+                drawPlan(dateInput.value)
+                calculatePayment()
+            },
+            error: function (data) {
+                toastr.error('Ошибка оплаты: ' + data.responseJSON.detail)
+                pb.classList.remove('disabled')
+                ldr.style.display = 'none'
+            }
+
+        })
+    }
+
+    function drawPlan(selectedDate) {
+
+        $.ajax({
+
+            url: '/orders/getPlan?org_id=' + id + '&date=' + selectedDate,
+            method: 'get',
+
+            success: function (data) {
+
+                document.getElementById('add-plan-btn').classList.add('disabled')
+                document.getElementById('pay-plan-btn').classList.add('disabled')
+                document.getElementById('pay-plan-btn').innerText = 'Оплатить'
+                document.getElementById('page_ldr').style.display = 'block'
+
+                var table = $('#dt_plan').DataTable();
+                table.clear()
+                table.draw()
+                table.rows.add(data).draw();
+
+                document.getElementById('divider-text').innerText = 'Запланированные выкупы на ' + moment(selectedDate).format('DD.MM.YYYY')
+                dateInput.disabled = false
+                document.getElementById('page_ldr').style.display = 'none'
+                document.getElementById('add-plan-btn').classList.remove('disabled')
+
+                if (data.length !== 0) {
+                    document.getElementById('pay-plan-btn').classList.remove('disabled')
+                    document.getElementById('pay-plan-btn').innerText = 'Оплатить задачи на ' + moment(selectedDate).format('DD.MM.YYYY')
+                }
+
+                toastr.info('Данные обновлены')
+            },
+
+            error: function () {
+                toastr.error('Ошибка загрузки плана. Обновите страницу и повторите попытку')
+                dateInput.disabled = false
+                document.getElementById('page_ldr').style.display = 'none'
+
+            }
+
+        });
+
+    }
+
+    function addPlan() {
+
+        var data = {
+            'ozon_keyword': document.getElementById('keywords').value,
+            'dt_planed': dateInput.value,
+            'product_id': document.getElementById('size_id').value,
+        }
+
+        if (data.size_id == '') {
+            toastr.error('Выберите товар')
+            return
+        }
+
+        var amount = document.getElementById('amount').value
+
+        if (amount === null || amount === '') {
+            toastr.error('Введите кол-во')
+            return
+        }
+
+        if (amount === null || amount === '') {
+            toastr.error('Введите кол-во')
+            return
+        }
+
+        if (data['ozon_keyword'] === null || data['ozon_keyword'] === '') {
+            toastr.error('Введите ключевой запрос. Например: рубашка женская стеганая')
+            return
+        }
+
+        document.getElementById('add-plan-btn').classList.add('disabled')
+        const currentDomain = window.location.origin;
+        const url = new URL('/orders/savePlan', currentDomain);
+        for (var key in data) {
+            url.searchParams.append(key, data[key]);
+        }
+        url.searchParams.append('amount', amount);
+
+        $.ajax({
+            url: url,
+            method: 'post',
+
+            success: function () {
+                toastr.success('Задача успешно создана')
+                drawPlan(dateInput.value)
+                document.getElementById('add-plan-btn').classList.remove('disabled')
+            },
+            error: function (data) {
+                toastr.error(data.responseJSON.detail)
+                document.getElementById('add-plan-btn').classList.remove('disabled')
+
+            }
+        });
+    }
+
+</script>
+
+<!-- GET PRODS FOR SELECT IN FORM -->
+<script>
+
+    $.ajax({
+
+        url: '/products/getOwned?org_id=' + id,
+        method: 'get',
+
+        success: function (data) {
+
+            var selectElement = $('#size_id');
+
+            $.each(data, function (i, product) {
+
+                var prod_title = product.ozon_title
+
+                if (product.ozon_size !== null) {
+                    prod_title = '(' + product.ozon_size + ') ' + prod_title
+                }
+
+                var optionText = product.ozon_article
+                var optionValue = product.id
+                var optionDataSubtext = prod_title
+
+                var option = $('<option>').text(optionText).attr('data-subtext', optionDataSubtext).val(optionValue);
+                selectElement.append(option);
+
+            });
+
+            selectElement.selectpicker('refresh');
+
+        },
+
+        error: function (data) {
+            toastr.error('Ошибка получения товаров: ' + data.responseJSON.detail)
+        }
+    });
+
+</script>
+
+
+<script>
+
+    function cancelTask(task_id) {
+        if (confirm('Отменить задачу?')) {
+            $.ajax({
+                url: '/orders/cancelTask?task_id=' + task_id,
+                method: 'post',
+                success: function (data) {
+                    toastr.success('Задача успешно отменена')
+                    drawPlan(dateInput.value)
+                },
+                error: function (data) {
+                    toastr.error('Ошибка отмены задачи')
+
+                }
+
+            })
+        }
+    }
+
+
+    function setCalDate(n) {
+        if (n === 1) {
+            // set yesterday
+            dateInput.value = moment().subtract(1, 'days').format('YYYY-MM-DD')
+            drawPlan(dateInput.value)
+        }
+
+        if (n === 2) {
+            // set today
+            dateInput.value = moment().format('YYYY-MM-DD')
+            drawPlan(dateInput.value)
+        }
+
+        if (n === 3) {
+            // set tomorrow
+            dateInput.value = moment().add(1, 'days').format('YYYY-MM-DD')
+            drawPlan(dateInput.value)
+        }
+    }
+</script>
+
+
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+
+        <div class="col">
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h5 class="card-title mb-0">Планирование выкупов</h5>
+
+                    <div class="divider text-start">
+                        <div class="divider-text">Выбрать день</div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-lg-auto col-sm">
+                            <input type="date" class="form-control" id="plan-date">
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(1)" class="btn btn-label-secondary" id="dt_1">Вчера</i></a>
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(2)" class="btn btn-label-secondary" id="dt_2">Сегодня</i></a>
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(3)" class="btn btn-label-secondary" id="dt_3">Завтра</i></a>
+                        </div>
+
+                    </div>
+
+
+                    <div class="divider text-start">
+                        <div class="divider-text">Добавить задачу в выбранный день</div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col">
+                            <label for="size_id" class="form-label">Товар</label>
+                            <select id="size_id" class="selectpicker w-100" data-live-search="true"
+                                    data-style="btn-default"
+                                    data-show-subtext="true">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col col-sm">
+                            <label for="keywords" class="form-label">Ключевой запрос</label>
+                            <input type="text" class="form-control" id="keywords">
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col col-sm">
+                            <label for="amount" class="form-label">Количество выкупов товара</label>
+                            <input type="number" class="form-control" id="amount" value="1">
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+
+                        <a href="javascript:addPlan()" class="btn btn-primary disabled"
+                           id="add-plan-btn">Добавить</a>
+
+                        <a href="javascript:drawPlan(dateInput.value)" class="btn btn-label-secondary"
+                           id="refresh-plan-btn">Обновить</a>
+
+                        <a href="javascript:"
+                           onclick="calculatePayment()"
+                           class="btn btn-label-success disabled"
+                           id="pay-plan-btn"
+                           data-bs-toggle="modal"
+                           data-bs-target="#modal-plan-calc">Оплатить
+                        </a>
+
+
+                    </div>
+                    <div class="divider text-start mt-4">
+                        <div class="divider-text" id="divider-text"></div>
+                    </div>
+                    <div class="card-body table-responsive p-0">
+
+                        <div class="row justify-content-end">
+                            <div class="col-auto">
+                                <input type="date" class="form-control" id="replace_date">
+                            </div>
+                            <div class="col-auto">
+                                <button id="replace-selected" class="btn btn-label-info mb-2">Перенести
+                                    выбранные
+                                </button>
+                            </div>
+
+                            <div class="col-auto">
+                                <button id="cancel-selected" class="btn btn-label-danger mb-2">Отменить
+                                    выбранные
+                                </button>
+                            </div>
+
+                        </div>
+
+
+                        <table id="dt_plan" class="datatables-ajax table table-bordered dataTable no-footer">
+                            <thead>
+                            <tr>
+                                <th><input class="dt-checkboxes form-check-input" type="checkbox" id="select-all"></th>
+                                <th>№</th>
+                                <th>Артикул</th>
+                                <th>Товар</th>
+                                <th>Размер</th>
+                                <th>Ключевой запрос</th>
+                                <th>Статус</th>
+                                <th>Описание</th>
+                                <th>Действия</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="modal fade" id="modal-plan-calc" aria-labelledby="modal-plan-calc" style="display: none"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <span id="modal_title" class="me-2">Загрузка даннных платежа</span>
+                    </h5>
+                    <span class="spinner-border spinner-border-sm text-primary" role="status" id="pay_ldr"
+                          style="display: none">
+                </span>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modal_body">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endblock %}

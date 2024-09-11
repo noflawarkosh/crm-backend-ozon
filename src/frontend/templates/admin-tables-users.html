@@ -1,0 +1,175 @@
+{% extends "!base-admin.html" %}
+{% block title %}Пользователи | {% endblock %}
+{% block css %}
+
+{% endblock %}
+
+{% block js %}
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script>
+
+    function updateUserStatus(user_id, status_id) {
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({users: [{status: status_id, id: user_id}]}),
+            contentType: "application/json",
+            success: function () {
+                var msg = 'Данные пользователя обновлены'
+
+                if (status_id === 2) {
+                    msg = 'Пользователь разблокирован'
+                }
+
+                if (status_id === 3) {
+                    msg = 'Пользователь заблокирован'
+                }
+
+                toastr.success(msg)
+                dt_refresh('dt_users', '/admin/get/users')
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/users',
+        success: function (data) {
+            $('#dt_users').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {data: 'name'},
+                    {data: 'username'},
+                    {data: 'email'},
+                    {data: 'telnum'},
+                    {data: 'telegram'},
+                    {
+                        "data": "status",
+                        "render": function (data, type, row) {
+
+                            var c = 'warning'
+                            var txt = 'Ожидает подтверждения'
+                            if (data === 2) {
+                                c = 'success'
+                                txt = 'Активный'
+                            }
+
+                            if (data === 3) {
+                                c = 'danger'
+                                txt = 'Не активный'
+                            }
+
+                            return '<span class="badge bg-label-' + c + '">' + txt + '</span>'
+                        }
+                    },
+                    {
+                        "data": "status",
+                        "render": function (data, type, row) {
+
+                            var edit = '<a href="/admin-edit/users/' + row.id + '"><i class="bx bx-edit-alt"></i></a>'
+
+                            if (data === 1) {
+                                edit += '<a href="##" onclick="updateUserStatus(' + row.id + ', ' + 2 + ')"><i class="bx bx-check"></i></a>' +
+                                        '<a href="##" onclick="updateUserStatus(' + row.id + ', ' + 3 + ')"><i class="bx bx-x"></i></a>'
+                            }
+
+                            if (data === 2) {
+                                edit += '<a href="##" onclick="updateUserStatus(' + row.id + ', ' + 3 + ')"><i class="bx bx-block"></i></a>'
+                            }
+
+                            if (data === 3) {
+                                edit += '<a href="##" onclick="updateUserStatus(' + row.id + ', ' + 2 + ')"><i class="bx bx-check"></i></a>'
+                            }
+
+                            return edit
+
+                        }
+                    }
+                ],
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+
+                "order": [[0, "desc"]]
+            });
+
+        },
+        error: function () {
+            toastr.error('Ошибка получения пользователей')
+
+        }
+    })
+
+</script>
+
+
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Пользователи
+                        <a href="javascript:dt_refresh('dt_users', '/admin/get/users')"><i class="bx bx-refresh"></i></a>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-datatable table-responsive p-4">
+                    <table id="dt_users" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Имя</th>
+                            <th>Логин</th>
+                            <th>Почта</th>
+                            <th>Телефон</th>
+                            <th>Telegram</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

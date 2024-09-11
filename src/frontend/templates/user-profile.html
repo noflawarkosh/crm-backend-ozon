@@ -1,0 +1,142 @@
+{% extends "!base.html" %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/pages/page-profile.css') }}"/>
+{% endblock %}
+
+{% block js %}
+
+<script>
+    function loadProfile(data) {
+        document.getElementById('header-name').innerHTML = data.name
+        document.getElementById('header-username').innerText = data.username
+
+        document.getElementById('card-name').innerText = data.name
+        document.getElementById('card-username').innerText = data.username
+        document.getElementById('card-status').innerText = 'Активный'
+        document.getElementById('card-id').innerText = data.id
+
+        document.getElementById('card-email').innerText = data.email
+        document.getElementById('card-telegram').innerText = data.telegram
+        document.getElementById('card-telnum').innerText = data.telnum
+
+        var imageUrl = "{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}"
+
+        if (data.media !== null) {
+            imageUrl = 'https://storage.yandexcloud.net/greedybear/' + data.media
+        }
+
+        var imageElement1 = $('<img class="ms-0 ms-sm-4 rounded user-profile-img" height="120" width="100" style="object-fit: cover">');
+
+        imageElement1.attr('src', imageUrl);
+
+        $('#my-avatar-header').append(imageElement1);
+
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-grow-1">
+
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="user-profile-header-banner">
+                    <img src="{{ url_for('static', path='assets/img/avatars/profile-banner.png') }}" alt="Banner image"
+                         class="rounded-top">
+                </div>
+                <div class="user-profile-header d-flex flex-column flex-sm-row text-sm-start text-center mb-4">
+                    <div class="flex-shrink-0 mt-n2 mx-sm-0 mx-auto" id="my-avatar-header"></div>
+                    <div class="flex-grow-1 mt-3 mt-sm-5">
+                        <div class="d-flex align-items-md-end align-items-sm-start align-items-center justify-content-md-between justify-content-start mx-4 flex-md-row flex-column gap-4">
+                            <div class="user-profile-info">
+                                <h4 id="header-name"></h4>
+                                <ul class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2">
+                                    <li class="list-inline-item fw-medium">
+                                        @<span id="header-username"></span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--/ Header -->
+
+
+    <!-- User Profile Content -->
+    <div class="row">
+        <div class="col-xl-4 col-lg-5 col-md-5">
+            <!-- About User -->
+            <div class="card mb-4">
+                <div class="card-body">
+
+                    <small class="text-muted text-uppercase">Основное</small>
+                    <ul class="list-unstyled mb-4 mt-3">
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bx-user"></i>
+                            <span class="fw-medium mx-2">Имя:</span>
+                            <span id="card-name"></span>
+                        </li>
+
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bx-tag-alt"></i>
+                            <span class="fw-medium mx-2">Имя пользователя:</span>
+                            <span id="card-username"></span>
+                        </li>
+
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bx-check"></i>
+                            <span class="fw-medium mx-2">Статус:</span>
+                            <span id="card-status"> </span>
+                        </li>
+
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bx-server"></i>
+                            <span class="fw-medium mx-2">Системный ID:</span>
+                            <span id="card-id"></span>
+                        </li>
+
+
+                    </ul>
+
+                    <small class="text-muted text-uppercase">Контакты</small>
+                    <ul class="list-unstyled mb-4 mt-3">
+
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bx-mail-send"></i>
+                            <span class="fw-medium mx-2">E-mail:</span>
+                            <span id="card-email"></span>
+                        </li>
+
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bxl-telegram"></i>
+                            <span class="fw-medium mx-2">Telegram:</span>@
+                            <span id="card-telegram"></span>
+                        </li>
+
+                        <li class="d-flex align-items-center mb-3">
+                            <i class="bx bx-phone"></i>
+                            <span class="fw-medium mx-2">Телефон:</span>
+                            <span id="card-telnum"></span>
+                        </li>
+                    </ul>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+{% endblock %}

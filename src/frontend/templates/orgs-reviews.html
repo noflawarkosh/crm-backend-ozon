@@ -1,0 +1,1196 @@
+{% extends "!base.html" %}
+{% block title %}Отзывы{% endblock %}
+
+{% block head %}
+
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/apex-charts/apex-charts.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/css/pages/card-analytics.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+
+{% endblock %}
+
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/app-ecommerce-dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+
+<!-- GET PRODS FOR SELECT IN FORM -->
+<script>
+
+    const url = window.location.href;
+    var arr = url.split('/')
+    var org_id = arr[arr.length - 1]
+
+    $.ajax({
+
+        url: '/products/getOwned?org_id=' + org_id,
+        method: 'get',
+
+        success: function (data) {
+
+            var selectElement = $('#size_id');
+
+            $.each(data, function (i, product) {
+                $.each(product.sizes, function (j, size) {
+                    if (size.is_active) {
+                        var prod_title = product.wb_title
+
+                        if (size.wb_size_origName !== null) {
+                            prod_title = '(' + size.wb_size_origName + ') ' + prod_title
+                        }
+
+                        if (prod_title.length >= 25) {
+                            prod_title = prod_title.slice(0, 25) + '...'
+                        }
+
+                        var optionText = product.wb_article
+                        var optionValue = size.id
+                        var optionDataSubtext = prod_title
+
+                        var option = $('<option>').text(optionText).attr('data-subtext', optionDataSubtext).val(optionValue);
+                        selectElement.append(option);
+                    }
+
+                });
+            });
+
+            selectElement.selectpicker('refresh');
+
+        },
+
+        error: function (data) {
+            toastr.error('Ошибка получения товаров: ' + data.responseJSON.detail)
+        }
+    });
+
+</script>
+
+
+<!-- GET AND DISABLE REVIEWS -->
+<script>
+
+    function cancelReview(id) {
+        if (confirm('Подтвердите отмену публикации отзыва #' + id)) {
+
+            $.ajax({
+
+                url: '/reviews/disable?review_id=' + id,
+                method: 'get',
+
+                success: function (data) {
+                    dt_refresh('dt_user_reviews', '/reviews/getOwned?org_id=' + org_id)
+                    toastr.success('Публикация отменена')
+                },
+                error: function (data) {
+                    toastr.error('Ошибка выполнения операции' + data.responseJSON.detail)
+                }
+            })
+        }
+    }
+
+    function truncateString(str, maxLength = 15) {
+        if (str.length <= maxLength) {
+            return str;
+        }
+        return str.slice(0, maxLength) + "...";
+    }
+
+    var v_modals = ''
+
+    $.ajax({
+
+        url: '/payments/currentLevel?org_id=' + org_id,
+        type: 'GET',
+        success: function (lvl) {
+            lvl = lvl.level
+
+            $.ajax({
+
+                url: '/reviews/getOwned?org_id=' + org_id,
+                method: 'get',
+
+                success: function (data) {
+                    var t_modals = ''
+                    $('#dt_user_reviews').DataTable({
+                        "data": data,
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "searching": true,
+                        "ordering": true,
+                        autoWidth: false,
+                        "columns": [
+                            {
+                                data: 'id'
+                            },
+                            {
+                                render: function (data, type, row) {
+
+                                    var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-product.jpg') }}"
+
+                                    if (row.size.product.media !== null) {
+                                        avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.size.product.media
+                                    }
+
+                                    var wb_url = 'https://www.wildberries.ru/catalog/' + row.size.product.wb_article + '/detail.aspx'
+
+                                    return '' +
+                                        '<div class="d-flex justify-content-start align-items-center product-name">' +
+                                        '   <div class="avatar-wrapper">' +
+                                        '       <div class="avatar avatar me-2 rounded-2 bg-label-secondary">' +
+                                        '           <img src="' + avatar_src + '">' +
+                                        '       </div>' +
+                                        '   </div>' +
+                                        '   <div class="d-flex flex-column">' +
+                                        '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + truncateString(row.size.product.wb_title) + '</a></h6>' +
+                                        '       <small class="text-muted text-truncate d-none d-sm-block">' + row.size.product.wb_article + '</small>' +
+                                        '   </div>' +
+                                        '</div>'
+                                }
+                            },
+                            {
+                                "data": 'size',
+                                "render": function (data, type, row) {
+                                    var cell = '—'
+
+                                    if (data.wb_size_origName !== null) {
+                                        cell = data.wb_size_origName
+                                    }
+
+                                    return '<span class="text-nowrap">' + cell + '</span>'
+                                }
+                            },
+                            {
+                                "data": 'text',
+                                "render": function (data, type, row) {
+                                    if (data) {
+
+                                        var style = 'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.2em; max-height: 3.6em;'
+
+                                        t_modals += '<div class="modal fade" id="textExpand-' + row.id + '" aria-labelledby="textExpandLabel-' + row.id + '" tabindex="-1" style="display: none;"\n' +
+                                            '         aria-hidden="true">\n' +
+                                            '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                            '            <div class="modal-content">\n' +
+                                            '                <div class="modal-header">\n' +
+                                            '                    <h5 class="modal-title" id="textExpandLabel-' + row.id + '">' + 'Текст отзыва' + '</h5>\n' +
+                                            '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                            '                </div>\n' +
+                                            '                <div class="modal-body"><p>' + data + '</p></div></div>' +
+                                            '\n' +
+                                            '            </div>\n' +
+                                            '        </div>\n' +
+                                            '    </div>'
+
+
+                                        return '<span style="' + style + '">' + '<a href="##" data-bs-toggle="modal" data-bs-target="#textExpand-' + row.id + '"><i class="bx bx-window" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                            '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                            '                           data-bs-original-title="Полный текст"></i></a> ' + data + '</span>'
+                                    }
+
+                                    return '—'
+                                },
+
+                            },
+                            {
+                                "data": 'strict_match',
+                                "render": function (data, type, row) {
+                                    return data ? 'Да' : 'Нет'
+                                },
+
+                            },
+                            {
+                                "data": 'is_express',
+                                "render": function (data, type, row) {
+                                    return data ? 'Да <i class="bx bxs-zap text-warning"></i>' : 'Нет'
+                                },
+
+                            },
+                            {
+                                "data": 'size',
+                                "render": function (data, type, row) {
+                                    var cell = '—'
+                                    if (data != null) {
+                                        if (row.match === 0) {
+                                            cell = 'Не указывать'
+                                        }
+                                        if (row.match === 1) {
+                                            cell = 'Соответствует размеру'
+                                        }
+                                        if (row.match === 2) {
+                                            cell = 'Маломерит'
+                                        }
+                                        if (row.match === 3) {
+                                            cell = 'Большемерит'
+                                        }
+                                    }
+                                    return '<span class="text-nowrap">' + cell + '</span>'
+                                }
+                            },
+                            {
+                                "data": 'stars',
+                                "render": function (data, type, row) {
+                                    var cell = '—'
+                                    if (data != null) {
+                                        return '<span class="text-nowrap">' + data + '</span>'
+                                    }
+                                    return cell
+                                }
+                            },
+                            {
+                                "data": 'media',
+                                "render": function (data, type, row) {
+                                    if (data.length !== 0) {
+
+                                        var media_list = ''
+
+                                        $.each(data, function (i, pic) {
+                                            var ftype = pic.media.split('.')[1].toLowerCase()
+
+                                            if (ftype === 'mov' || ftype === 'mp4') {
+                                                media_list = media_list + '<a href="##" data-bs-toggle="modal" data-bs-target="#modalToggle-' + pic.id + '">' +
+                                                    '<div class="avatar-wrapper">' +
+                                                    '<div class="avatar me-2 rounded-2 bg-label-secondary">' +
+                                                    '<i class="bx bx-play"></i>' +
+                                                    '</div></div></a>'
+
+                                                v_modals += '<div class="modal fade" id="modalToggle-' + pic.id + '" aria-labelledby="modalToggleLabel-' + pic.id + '" tabindex="-1" style="display: none;"\n' +
+                                                    '         aria-hidden="true">\n' +
+                                                    '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                                    '            <div class="modal-content">\n' +
+                                                    '                <div class="modal-header">\n' +
+                                                    '                    <h5 class="modal-title" id="modalToggleLabel-' + pic.id + '">' + 'Видео' + '</h5>\n' +
+                                                    '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                                    '                </div>\n' +
+                                                    '                <div class="modal-body"><video controls width="100%">\n' +
+                                                    '  <source src="" />\n' +
+                                                    '\n' +
+                                                    '  <source src="https://storage.yandexcloud.net/greedybear/' + pic.media + '" class="rounded-2" />\n' +
+
+                                                    '</video></div>' +
+                                                    '\n' +
+                                                    '            </div>\n' +
+                                                    '        </div>\n' +
+                                                    '    </div>'
+                                            } else {
+
+                                                var mu = 'https://storage.yandexcloud.net/greedybear/' + pic.media.split('.')[0] + '.webp'
+                                                media_list = media_list + '' +
+                                                    '<div class="avatar-wrapper">' +
+                                                    '<div class="avatar me-2 rounded-2 bg-label-secondary">' +
+                                                    '<a href="' + mu + '" target="_blank"><img src="' + mu + '" class="rounded-2"></a>' +
+                                                    '</div>\<' +
+                                                    '/div>'
+                                            }
+
+                                        })
+
+                                        media_list = '<div class="d-flex justify-content-start align-items-center customer-name">' + media_list + '</div>'
+                                        return media_list
+                                    }
+
+                                    return '—'
+                                }
+                            },
+
+                            {
+                                "data": 'status',
+                                "render": function (data, type, row) {
+                                    var text = 'Не опознан'
+                                    var color = 'secondary'
+
+                                    if (data === 1) {
+                                        text = 'Новая задача'
+                                        color = 'info'
+                                    }
+
+                                    if (data === 2) {
+                                        text = 'В работе'
+                                        color = 'warning'
+                                    }
+
+                                    if (data === 3) {
+                                        text = 'Опубликован'
+                                        color = 'success'
+                                    }
+
+                                    if (data === 4) {
+                                        text = 'Отменен'
+                                        color = 'danger'
+                                    }
+
+
+                                    return '<span class="badge bg-label-' + color + '">' + text + '</span>'
+                                }
+                            },
+                            {
+                                "data": 'status',
+                                render: function (data, type, row) {
+
+                                    var color = 'secondary'
+
+                                    if (data === 1) {
+                                        color = 'secondary'
+                                    }
+
+                                    if (data === 2) {
+                                        color = 'info'
+                                    }
+
+                                    if (data === 3) {
+                                        color = 'danger'
+                                    }
+
+                                    if (data === 4) {
+                                        color = 'secondary'
+                                    }
+
+
+                                    var text = lvl.price_review
+
+                                    if (row.media.length !== 0) {
+                                        text = lvl.price_review_media
+                                    }
+
+                                    if ((row.strict_match === true) || (row.is_express === true)) {
+                                        text = lvl.price_review_request
+                                    }
+
+
+                                    return '<b><span class="text-' + color + '">' + text + ' ₽</span></b>'
+                                }
+                            },
+                            {
+                                data: 'description',
+                                render: function (data, type, row) {
+                                    var cell = '—'
+                                    if (data != null) {
+                                        cell = data
+                                    }
+                                    return cell
+                                }
+                            },
+                            {
+                                "render": function (data, type, row) {
+                                    var edit = ''
+
+                                    if (row.status === 1) {
+                                        edit += '<a href="javascript:cancelReview(' + row['id'] + ', 5)"><i class="bx bx-x" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                            '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                            '                           data-bs-original-title="Отменить задачу"></i></a>'
+                                        edit += '<a href="javascript:" onclick="editReview(' + row['id'] + ')"' +
+                                            '                           data-bs-toggle="modal"' +
+                                            '                           data-bs-target="#modal_edit_review">' +
+                                            '<i class="bx bx-edit-alt" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                            '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                            '                           data-bs-original-title="Изменить"></i>' +
+                                            '</a>'
+                                    }
+                                    return edit
+                                }
+                            }
+                        ],
+                        "initComplete": function () {
+
+                            var table = this.api().table().header();
+                            var newRow = $('<tr></tr>');
+                            $(table).append(newRow);
+
+                            var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+                            this.api().columns().every(function (i) {
+                                var column = this;
+                                if (searchColumns.includes(i)) {
+
+                                    var input = $('<input type="text" class="form-control" placeholder="" />');
+                                    $(newRow).append($('<th></th>').append(input));
+
+                                    input.on('keyup change clear', function () {
+                                        if (column.search() !== this.value) {
+                                            column.search(this.value).draw();
+                                        }
+                                    });
+                                } else {
+                                    $(newRow).append($('<th></th>'))
+
+                                }
+                            });
+                        },
+                        "order": [[0, "desc"]],
+                    });
+                    document.getElementById('t-modals').innerHTML = t_modals
+                    document.getElementById('prod-cntr').innerText = 'Всего: ' + data.length
+                    document.getElementById('rvs-ldr').style.display = 'none';
+                    document.getElementById('rvs-div').style.display = 'block';
+                    document.getElementById('v-modals').innerHTML = v_modals
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                },
+                error: function () {
+
+                    toastr.error('Ошибка загрузки списка товаров')
+                    document.getElementById('rvs-ldr').style.display = 'none';
+                }
+
+            });
+
+
+        },
+        error: function () {
+            toastr.error('Ошибка загрузки списка')
+        }
+    })
+
+</script>
+
+
+<!-- CREATE REVIEW -->
+<script>
+    document.getElementById('create-review-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var formData = new FormData(this);
+
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        $.ajax({
+            url: '/organizations/readOrganization?org_id=' + org_id,
+            type: 'GET',
+            success: function (o) {
+
+                var rate = 5
+                if (o.is_competitor) {
+                    rate = 1
+                }
+
+
+                // TEXT
+                const text = document.getElementById('rev-text');
+                var txt = text.value
+
+
+                // MATCH
+                var ws = document.getElementById('match_flag')
+                var ws_r = !!ws.checked;
+                var ws2 = document.getElementById('is_express')
+                var ws_ex = !!ws2.checked;
+
+
+                var radioButtons = document.querySelectorAll('input[name="default-radio-1"]');
+                for (var i = 0; i < radioButtons.length; i++) {
+                    if (radioButtons[i].checked) {
+                        var mtchid = radioButtons[i].value;
+                        break;
+                    }
+                }
+
+
+                // SIZE
+                var sizeselect = document.getElementById('size_id')
+                var sizeid = sizeselect.options[sizeselect.selectedIndex].value
+
+
+                // AJAX
+                const currentDomain = window.location.origin;
+                const url = new URL('/reviews/create', currentDomain);
+
+
+                url.searchParams.append('match', mtchid);
+                url.searchParams.append('strict_match', ws_r);
+                url.searchParams.append('is_express', ws_ex);
+                url.searchParams.append('stars', rate);
+
+
+                if (txt != '') {
+                    url.searchParams.append('text', txt);
+                }
+
+                url.searchParams.append('size_id', sizeid);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+
+                    success: function () {
+                        location.reload()
+                    },
+
+                    error: function (data) {
+                        toastr.error(data.responseJSON.detail)
+                        submitButton.classList.remove('disabled');
+                    }
+                });
+
+            },
+            error: function (data) {
+                toastr.error(data.responseJSON.detail)
+                submitButton.classList.remove('disabled');
+            }
+        })
+
+
+    });
+</script>
+
+
+<script>
+    function editReview(id) {
+        var RID = id
+        var m_title = document.getElementById('modal_edit_review_title')
+        var m_body = document.getElementById('modal_edit_review_body')
+        var re_prod = document.getElementById('review_edit_product')
+        var re_review_id = document.getElementById('re_review_id')
+        var re_text = document.getElementById('edit_rev-text')
+        var re_m_flag = document.getElementById('edit_match_flag')
+        var re_e_flag = document.getElementById('edit_is_express')
+        var re_esmr_1 = document.getElementById('esmr-1')
+        var re_esmr_2 = document.getElementById('esmr-2')
+        var re_esmr_3 = document.getElementById('esmr-3')
+        var re_esmr_4 = document.getElementById('esmr-4')
+        var re_rnn = document.getElementById('rating_number')
+
+        var re_stars1 = document.getElementById('Estars-1')
+        var re_stars5 = document.getElementById('Estars-5')
+
+        var re_div_stars = document.getElementById('Erating')
+
+        var re_match_size_edit = document.getElementById('match_size_edit')
+        var re_rev_edit_media = document.getElementById('rev_edit_media')
+        var media_table = document.getElementById('media_table')
+
+
+        m_body.style.display = 'none'
+        m_title.innerText = 'Получение данных отзыва ...'
+
+        $.ajax({
+            url: '/organizations/readOrganization?org_id=' + org_id,
+            type: 'GET',
+            success: function (o) {
+
+                var is_c = false
+                re_div_stars.style.display = 'none'
+                if (o.is_competitor) {
+                    is_c = true
+
+                }
+
+                $.ajax({
+                    url: '/reviews/get?review_id=' + id,
+                    type: 'GET',
+
+                    success: function (data) {
+
+                        // default values
+                        var re_media_list = ''
+                        re_review_id.value = ''
+                        re_prod.innerText = ''
+                        re_text.value = ''
+                        re_m_flag.checked = false
+                        re_e_flag.checked = false
+                        re_esmr_1.checked = false
+                        re_esmr_2.checked = false
+                        re_esmr_3.checked = false
+                        re_esmr_4.checked = false
+                        re_stars5.checked = false
+                        re_stars1.checked = false
+                        re_match_size_edit.style.display = 'none'
+                        re_rnn.value = 5
+
+                        // setting data values
+                        re_review_id.value = data.id
+
+                        var re_avatar_src = "{{ url_for('static', path='assets/img/avatars/def-product.jpg') }}"
+                        if (data.size.product.media !== null) {
+                            re_avatar_src = 'https://storage.yandexcloud.net/greedybear/' + data.size.product.media
+                        }
+                        var re_size_name = ''
+                        if (data.size.wb_size_name !== null) {
+                            re_size_name = ' — ' + data.size.wb_size_name
+                        }
+                        if (data.size.wb_size_origName !== null) {
+                            re_size_name = ' — ' + data.size.wb_size_origName
+                        }
+
+                        re_prod.innerHTML = '<div class="avatar-wrapper">\n' +
+                            '                            <div class="avatar avatar me-2 rounded-2 bg-label-secondary">\n' +
+                            '                                <img src="' + re_avatar_src + '">\n' +
+                            '                            </div>\n' +
+                            '                        </div>\n' +
+                            '                        <div class="d-flex flex-column">\n' +
+                            '                            <h6 class="text-body text-nowrap mb-0">\n' + data.size.product.wb_title + re_size_name +
+                            '                            </h6>\n' +
+                            '                            <small class="text-muted text-truncate d-none d-sm-block">' + data.size.product.wb_article + '</small>\n' +
+                            '                        </div>'
+
+                        re_text.value = data.text
+
+                        re_m_flag.checked = data.strict_match == true;
+                        re_e_flag.checked = data.is_express == true;
+
+                        if (data.match !== null) {
+                            re_match_size_edit.style.display = 'block'
+                            re_esmr_1.checked = data.match === 0;
+                            re_esmr_2.checked = data.match === 1;
+                            re_esmr_3.checked = data.match === 2;
+                            re_esmr_4.checked = data.match === 3;
+                        }
+
+                        re_rnn.value = data.stars
+
+                        media_table.innerHTML = '<table id="dt_review_media" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+                            '                            <thead>\n' +
+                            '                            <tr>\n' +
+                            '                                <th>Медиа</th>\n' +
+                            '                                <th></th>\n' +
+                            '                            </tr>\n' +
+                            '                            </thead>\n' +
+                            '                        </table>'
+
+                        $('#dt_review_media').DataTable({
+                            "data": data.media,
+                            "paging": true,
+                            "pageLength": 3,
+                            "lengthMenu": [[3], [3]],
+                            "searching": true,
+                            "ordering": true,
+                            autoWidth: false,
+
+                            "columns": [
+                                {
+                                    render: function (data, type, row) {
+                                        var ftype = row.media.split('.')[1].toLowerCase()
+
+                                        if (ftype === 'mov' || ftype === 'mp4') {
+                                            return '<a href="##" data-bs-toggle="modal" data-bs-target="#modalToggle-' + row.id + '">' +
+                                                '<div class="avatar-wrapper">' +
+                                                '<div class="avatar me-2 rounded-2 bg-label-secondary">' +
+                                                '<i class="bx bx-play"></i>' +
+                                                '</div></div></a>'
+
+                                        } else {
+
+                                            var mu = 'https://storage.yandexcloud.net/greedybear/' + row.media.split('.')[0] + '.webp'
+                                            return '' +
+                                                '<div class="avatar-wrapper">' +
+                                                '<div class="avatar me-2 rounded-2 bg-label-secondary">' +
+                                                '<a href="' + mu + '" target="_blank"><img src="' + mu + '" class="rounded-2"></a>' +
+                                                '</div>\<' +
+                                                '/div>'
+                                        }
+                                    }
+                                },
+                                {
+                                    "render": function (data, type, row) {
+                                        return '<a href="javascript:delMedia(' + row.id + ', ' + RID + ')">удалить</a>'
+                                    }
+                                },
+                            ],
+                            "order": [[0, "desc"]],
+                        })
+
+                        m_title.innerText = 'Редактирование отзыва #' + data.id
+                        document.getElementById('edit_review_id').value = data.id
+                        m_body.style.display = 'block'
+                    },
+
+                    error: function (data) {
+                        toastr.error('Ошибка загрузки данных отзыва. Обновите страницу и повторите попытку')
+                        toastr.error(data.responseJSON.detail)
+                    }
+                });
+
+
+            }
+        })
+
+
+    }
+
+
+    document.getElementById('review_add_media').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+
+        var formData = new FormData(this);
+        var submitButton = document.getElementById('re_m_se');
+        submitButton.classList.add('disabled');
+        submitButton.innerText = 'Загрузка...'
+
+        $.ajax({
+            url: '/reviews/addMedia',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+
+            success: function () {
+                document.getElementById('review_add_media').reset()
+                submitButton.innerText = 'Загрузить'
+                var table = $('#dt_review_media').DataTable()
+
+                document.getElementById('page_ldr').style.display = 'block'
+                $.ajax({
+                    type: "GET",
+                    url: '/reviews/get?review_id=' + formData.get('review_id'),
+                    dataType: "json",
+                    success: function (data) {
+                        table.clear()
+                        table.draw()
+                        table.rows.add(data.media).draw();
+                        document.getElementById('page_ldr').style.display = 'none'
+                    },
+                    error: function () {
+                        toastr.error('Ошибка обновления данных. Обновите страницу')
+                    }
+                })
+
+                toastr.success('Сохранено')
+                dt_refresh('dt_user_reviews', '/reviews/getOwned?org_id=' + org_id)
+
+                submitButton.classList.remove('disabled');
+            },
+
+            error: function (data) {
+                submitButton.classList.remove('disabled');
+                submitButton.innerText = 'Загрузить'
+                toastr.error('Ошибка выполнения операции')
+                toastr.error(data.responseJSON.detail)
+            }
+        });
+
+    });
+
+
+    function delMedia(id, rid) {
+        if (confirm('Удалить медиа?')) {
+            $.ajax({
+                type: "POST",
+                url: '/reviews/delMedia?media_id=' + id,
+                dataType: "json",
+                success: function (data) {
+                    var table = $('#dt_review_media').DataTable()
+                    document.getElementById('page_ldr').style.display = 'block'
+                    $.ajax({
+                        type: "GET",
+                        url: '/reviews/get?review_id=' + rid,
+                        dataType: "json",
+                        success: function (data) {
+                            table.clear()
+                            table.draw()
+                            table.rows.add(data.media).draw();
+                            document.getElementById('page_ldr').style.display = 'none'
+                        },
+                        error: function () {
+                            toastr.error('Ошибка обновления данных. Обновите страницу')
+                        }
+                    })
+                    toastr.success('Удалено')
+                    dt_refresh('dt_user_reviews', '/reviews/getOwned?org_id=' + org_id)
+                },
+                error: function () {
+                    toastr.error('Ошибка удаления. Обновите страницу')
+                }
+            })
+        }
+
+    }
+
+
+    function saveReview() {
+        var m_title = document.getElementById('modal_edit_review_title')
+        var m_body = document.getElementById('modal_edit_review_body')
+        var re_prod = document.getElementById('review_edit_product')
+        var re_review_id = document.getElementById('re_review_id')
+        var re_text = document.getElementById('edit_rev-text')
+        var re_m_flag = document.getElementById('edit_match_flag')
+        var re_e_flag = document.getElementById('edit_is_express')
+        var re_esmr_1 = document.getElementById('esmr-1')
+        var re_esmr_2 = document.getElementById('esmr-2')
+        var re_esmr_3 = document.getElementById('esmr-3')
+        var re_esmr_4 = document.getElementById('esmr-4')
+
+        var re_stars1 = document.getElementById('Estars-1')
+        var re_stars5 = document.getElementById('Estars-5')
+
+        var re_match_size_edit = document.getElementById('match_size_edit')
+        var re_rev_edit_media = document.getElementById('rev_edit_media')
+        var re_sb = document.getElementById('re_sb')
+
+
+        re_sb.classList.add('disabled')
+
+        var XV = null;
+        var XR = null;
+
+        var re_m_flag_v = !!re_m_flag.checked;
+        var re_e_flag_v = !!re_e_flag.checked;
+
+        if (re_esmr_1.checked) {
+            XV = 0;
+        } else if (re_esmr_2.checked) {
+            XV = 1;
+        } else if (re_esmr_3.checked) {
+            XV = 2;
+        } else if (re_esmr_4.checked) {
+            XV = 3;
+        }
+
+        XR = document.getElementById('rating_number').value
+
+        if (XV === null) {
+            toastr.error('Выберите соответствие')
+            re_sb.classList.remove('disabled')
+            return
+        }
+
+        if (XR === null) {
+            toastr.error('Выберите рейтинг')
+            re_sb.classList.remove('disabled')
+            return
+        }
+
+        $.ajax({
+            url: '/reviews/update?id=' + re_review_id.value + '&strict_match=' + re_m_flag_v + '&match=' + XV + '&text=' + re_text.value + '&is_express=' + re_e_flag_v + '&stars=' + XR,
+            type: 'POST',
+            success: function () {
+                toastr.success('Изменения сохранены')
+                re_sb.classList.remove('disabled')
+                var u = '/reviews/getOwned?org_id=' + org_id
+                dt_refresh('dt_user_reviews', u)
+            },
+            error: function (data) {
+                toastr.error('Ошибка сохранения изменений')
+                re_sb.classList.remove('disabled')
+            }
+        })
+
+
+    }
+
+    function uploadXLSXReviews() {
+
+        var b = document.getElementById('mass_btn')
+
+        var f = new FormData();
+        f.append('file', document.getElementById('mass_reviews').files[0]);
+
+        if (document.getElementById('mass_reviews').files.length == 0) {
+            toastr.error('Файл не выбран')
+            return
+        }
+
+        b.classList.add('disabled')
+        b.innerText = 'Обработка ...'
+        $.ajax({
+            'url': '/reviews/xlsxUpload?org_id=' + org_id,
+            'type': 'POST',
+            data: f,
+            contentType: false,
+            processData: false,
+            success: function () {
+                toastr.success('Успешно')
+                b.innerText = 'Загрузить'
+                dt_refresh('dt_user_reviews', '/reviews/getOwned?org_id=' + org_id)
+                b.classList.remove('disabled')
+            },
+            error: function (data) {
+                toastr.error(data.responseJSON.detail)
+                b.innerText = 'Загрузить'
+                b.classList.remove('disabled')
+            }
+        })
+    }
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Отзывы
+                        <a href="javascript:"
+                           data-bs-toggle="offcanvas"
+                           data-bs-target="#off-create-prod"
+                           aria-controls="off-create-prod">
+                            <i class="bx bxs-plus-square" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Создать"></i>
+                        </a>
+                        <a href="javascript:"
+                           data-bs-toggle="offcanvas"
+                           data-bs-target="#off-mass-upload"
+                           aria-controls="off-mass-upload">
+                            <i class="bx bx-list-plus" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Массовая загрузка"></i>
+                        </a>
+                        <a href="javascript:var u = '/reviews/getOwned?org_id=' + org_id; dt_refresh('dt_user_reviews', u)"
+                           id="rb">
+                            <i class="bx bx-refresh" data-bs-toggle="tooltip" data-bs-offset="0,8"
+                               data-bs-placement="top" data-bs-custom-class="tooltip-primary"
+                               data-bs-original-title="Обновить"></i>
+                        </a>
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" id="rvs-ldr"></span>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-body table-responsive" id="rvs-div" style="display: none;">
+                    <table id="dt_user_reviews" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Товар</th>
+                            <th>Размер</th>
+                            <th width="15%">Текст</th>
+                            <th>Строгий размер</th>
+                            <th>Срочный</th>
+                            <th>Соответствие</th>
+                            <th>Рейтинг</th>
+                            <th>Медиа</th>
+                            <th>Статус</th>
+                            <th>Цена</th>
+                            <th>Описание</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="v-modals"></div>
+<div class="mt-3">
+    <div class="offcanvas offcanvas-start" id="off-create-prod">
+        <div class="offcanvas-header">
+            <h5 id="off-create-product-label" class="offcanvas-title">Новый отзыв</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Закрыть"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form id="create-review-form" enctype="multipart/form-data">
+
+                <input type="hidden" name="org_id" value="{{ org_id }}">
+
+                <div class="mb-3 row">
+                    <label for="size_id" class="form-label">Товар</label>
+                    <select id="size_id" class="selectpicker w-100" data-style="btn-default"
+                            data-show-subtext="true" data-live-search="true">
+                    </select>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="match_flag">
+                    <label class="form-check-label" for="match_flag">
+                        Подобрать аккаунт под размер
+                    </label>
+                </div>
+
+                <div class="row mb-4" id="match_size">
+                    <div class="col">
+                        <label class="form-label">Соответствие размеру</label>
+                        <div class="form-check ">
+                            <input name="default-radio-1" class="form-check-input" type="radio" value="0" id="smr-1"
+                                   checked="">
+                            <label class="form-check-label" for="smr-1">Не указывать</label>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input name="default-radio-1" class="form-check-input" type="radio" value="1" id="smr-2">
+                            <label class="form-check-label" for="smr-2">Соответствует размеру</label>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input name="default-radio-1" class="form-check-input" type="radio" value="2" id="smr-3">
+                            <label class="form-check-label" for="smr-3">Маломерит</label>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input name="default-radio-1" class="form-check-input" type="radio" value="3" id="smr-4">
+                            <label class="form-check-label" for="smr-4">Большемерит</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4 row">
+                    <label for="rev-text" class="form-label">Текст отзыва</label>
+                    <div class="col">
+                        <textarea class="form-control" id="rev-text" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <input type="hidden" id="rate_create" value="5">
+
+                <div class="mb-4 row">
+                    <label class="form-label">МЕДИА</label>
+                    <div class="col">
+                        <input type="file" accept=".jpeg, .png, .mov, .jpg, .webp" name="files" class="form-control"
+                               multiple>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="is_express">
+                    <label class="form-check-label" for="is_express">
+                        Срочный <i class="bx bxs-zap text-warning"></i>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary mb-3">Добавить задачу</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<div class="mt-3">
+    <div class="offcanvas offcanvas-start" id="off-mass-upload">
+        <div class="offcanvas-header">
+            <h5 id="off-mass-upload-label" class="offcanvas-title">Массовая загрузка отзывов</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Закрыть"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-4 row">
+                <label class="form-label">XLSX-файл с отзывами</label>
+                <div class="col">
+                    <input type="file" accept=".xlsx" id="mass_reviews" class="form-control">
+                </div>
+            </div>
+            <button class="btn btn-primary" id='mass_btn' onclick="uploadXLSXReviews()">Загрузить</button>
+            <a href="{{ url_for('static', path='assets/template.xlsx') }}" download="" target="_blank"
+               class="btn btn-label-primary">Скачать шаблон Excel</a>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modal_edit_review">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+
+            <input type="hidden" id="re_review_id" value="">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <span id="modal_edit_review_title" class="me-2"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" id="modal_edit_review_body">
+                <div class="mb-3 row">
+                    <label class="form-label">Товар</label>
+                    <div class="d-flex justify-content-start align-items-center product-name" id="review_edit_product">
+                    </div>
+                </div>
+
+                <div class="mb-4 row">
+                    <label for="edit_rev-text" class="form-label">Текст отзыва</label>
+                    <div class="col">
+                        <textarea class="form-control" id="edit_rev-text" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="edit_match_flag">
+                    <label class="form-check-label" for="edit_match_flag">
+                        Подобрать аккаунт под размер
+                    </label>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" value="" id="edit_is_express">
+                    <label class="form-check-label" for="edit_is_express">
+                        Срочный <i class="bx bxs-zap text-warning"></i>
+                    </label>
+                </div>
+
+
+                <div class="row mb-4" style="display: none" id="match_size_edit">
+                    <div class="col">
+                        <label class="form-label">Соответствие размеру</label>
+                        <div class="form-check ">
+                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="0" id="esmr-1"
+                                   checked="">
+                            <label class="form-check-label" for="esmr-1">Не указывать</label>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="1" id="esmr-2">
+                            <label class="form-check-label" for="esmr-2">Соответствует размеру</label>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="2" id="esmr-3">
+                            <label class="form-check-label" for="esmr-3">Маломерит</label>
+                        </div>
+                        <div class="form-check mt-1">
+                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="3" id="esmr-4">
+                            <label class="form-check-label" for="esmr-4">Большемерит</label>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="rating_number" value="5">
+                <div class="row mb-4" id="Erating" style="display: none">
+                    <div class="col">
+                        <label class="form-label">Рейтинг</label>
+                        <div class="form-check mt-1">
+                            <input name="Edefault-radio-2" class="form-check-input" type="radio" value="5" id="Estars-5"
+                                   checked="">
+                            <label class="form-check-label" for="Estars-5">5 звезд</label>
+                        </div>
+                        <div class="form-check ">
+                            <input name="Edefault-radio-2" class="form-check-input" type="radio" value="1"
+                                   id="Estars-1">
+                            <label class="form-check-label" for="Estars-1">1 звезда</label>
+                        </div>
+
+                    </div>
+                </div>
+
+                <form id="review_add_media" enctype="multipart/form-data">
+                    <div class="row">
+
+                        <input type="hidden" name="review_id" id="edit_review_id" value="">
+
+                        <div class="col-auto">
+                            <input type="file" accept=".jpeg, .png, .mov, .jpg, .webp, .mp4" class="form-control"
+                                   name="files"
+                                   multiple>
+                        </div>
+
+                        <div class="col-auto">
+                            <button class="btn btn-label-primary mb-3" id="re_m_se" type="submit">Загрузить</button>
+                        </div>
+
+                    </div>
+
+                </form>
+                <div class="mb-4 row">
+                    <div id="media_table">
+
+                    </div>
+                </div>
+
+                <button class="btn btn-primary mb-3" id="re_sb" onclick="saveReview()">Сохранить</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<div id="t-modals"></div>
+{% endblock %}

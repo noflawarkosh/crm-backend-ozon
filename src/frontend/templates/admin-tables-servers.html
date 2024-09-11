@@ -1,0 +1,650 @@
+{% extends "!base-admin.html" %}
+{% block title %}Серверы | {% endblock %}
+{% block head %}
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+<!-- Save schedule -->
+<script>
+    document.getElementById('off-create-schedule-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        var data = {
+            title: document.getElementById('sch-title').value,
+            time_min_min_per_step: document.getElementById('time_min_min_per_step').value,
+            time_max_min_per_step: document.getElementById('time_max_min_per_step').value,
+            time_start: document.getElementById('time_start').value,
+            time_end: document.getElementById('time_end').value,
+            time_first_point: document.getElementById('time_first_point').value,
+            time_second_point: document.getElementById('time_second_point').value,
+        }
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({schedules: [data]}),
+            contentType: "application/json",
+            success: function () {
+                location.reload();
+            },
+            error: function () {
+                toastr.error('Ошибка сохранения. Обновите страницу и повторите попытку')
+                submitButton.classList.remove('disabled');
+
+            }
+        })
+    })
+</script>
+
+<!-- Save server contractor -->
+<script>
+    document.getElementById('off-create-server-contractor-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        var data = {
+            load_percent: document.getElementById('load_percent').value,
+            load_j_min: document.getElementById('load_j_min').value,
+            load_j_max: document.getElementById('load_j_max').value,
+            load_l_min: document.getElementById('load_l_min').value,
+            load_l_max: document.getElementById('load_l_max').value,
+            load_t_min: document.getElementById('load_t_min').value,
+            load_t_max: document.getElementById('load_t_max').value,
+            load_m: document.getElementById('load_m').value,
+            load_i: document.getElementById('load_i').value,
+
+            contractor_id: document.getElementById('sc-contractor_id').value,
+            server_id: document.getElementById('sc-server_id').value,
+        }
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({servercontractors: [data]}),
+            contentType: "application/json",
+            success: function () {
+                location.reload();
+            },
+            error: function () {
+                toastr.error('Ошибка сохранения. Обновите страницу и повторите попытку')
+                submitButton.classList.remove('disabled');
+
+            }
+        })
+    })
+</script>
+
+<!-- Load contractors for new server contractor form -->
+<script>
+    $(document).ready(function () {
+
+        $.ajax({
+
+            url: '/admin/get/schedules',
+            type: 'GET',
+
+            success: function (data) {
+                var selectElement = $('#new-server-schedule-id');
+
+                $.each(data, function (index, item) {
+                    var optionText = item.title
+                    var optionValue = item.id
+
+                    var option = $('<option>').text(optionText).val(optionValue);
+                    selectElement.append(option);
+                });
+
+                selectElement.selectpicker('refresh');
+
+            },
+
+            error: function () {
+                toastr.error('Ошибка получения расписания. Обновите страницу и повторите попытку')
+            }
+        });
+
+        $.ajax({
+
+            url: '/admin/get/contractors',
+            type: 'GET',
+
+            success: function (data) {
+                var selectSCElement = $('#sc-contractor_id');
+
+                $.each(data, function (index, item) {
+                    var optionText = item.name
+                    var optionValue = item.id
+
+                    var option = $('<option>').text(optionText).val(optionValue);
+                    selectSCElement.append(option);
+                });
+
+                selectSCElement.selectpicker('refresh');
+
+            },
+
+            error: function () {
+                toastr.error('Ошибка получения подрядчиков. Обновите страницу и повторите попытку')
+            }
+        });
+
+    });
+</script>
+
+<!-- Save server -->
+<script>
+    document.getElementById('off-create-server-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        var data = {
+            name: document.getElementById('new-server-title').value,
+            number: document.getElementById('new-server-number').value,
+            schedule_id: document.getElementById('new-server-schedule-id').value,
+            is_active: true
+        }
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({servers: [data]}),
+            contentType: "application/json",
+
+            success: function () {
+                location.reload();
+            },
+            error: function () {
+                toastr.error('Ошибка сохранения. Обновите страницу и повторите попытку')
+                submitButton.classList.remove('disabled');
+
+            }
+        })
+    })
+</script>
+
+<!-- Draw schedules -->
+<script>
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/schedules',
+        success: function (data) {
+            $('#dt_schedules').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {data: 'title'},
+                    {data: 'time_min_min_per_step'},
+                    {data: 'time_max_min_per_step'},
+                    {data: 'time_start'},
+                    {data: 'time_end'},
+                    {data: 'time_first_point'},
+                    {data: 'time_second_point'},
+                    {
+                        "data": "id",
+                        "render": function (data, type, row) {
+                            return '<a href="/admin-edit/schedules/' + data + '"><i class="bx bx-edit-alt"></i></a>' +
+                                '<a href="javascript: delrowSch('  + data  +  ')"><i class="bx bx-x"></i></a>'
+
+                        }
+                    }
+                ],
+
+                "order": [[0, "desc"]]
+            });
+
+        },
+        error: function () {
+            toastr.error('Ошибка получения расписания')
+            submitButton.classList.remove('disabled');
+
+        }
+    })
+
+
+</script>
+
+<!-- Draw servers -->
+<script>
+
+    function setSelectedServer(id) {
+        var selectSRVElement1 = $('#sc-server_id');
+        selectSRVElement1.selectpicker('destroy');
+        selectSRVElement1.val(id);
+        selectSRVElement1.selectpicker('draw');
+    }
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/servers',
+
+        dataType: "json",
+        success: function (data) {
+            var tabs = ''
+            var tablist = ''
+
+            $.each(data, function (index, item) {
+
+                var tabid = 'srv_tab_' + item.id
+                var tableid = 'dt_contrs_' + item.id
+                var selected = ''
+                var act_cls = ''
+                var sho_cls = ''
+                var color = 'success'
+                var status = 'активный'
+                var srv_menu = '<a href="/admin-edit/servers/' + item.id + '" class="btn btn-xs btn-primary me-1 mt-1">Редактировать сервер</a>' +
+                    '           <a href="##" onclick="setSelectedServer(' + item.id + ')" class="btn btn-xs btn-label-primary me-1 mt-1" ' +
+                    'data-bs-toggle="offcanvas" data-bs-target="#off-create-server-contractor" ' +
+                    'aria-controls="off-create-server-contractor">Добавить подрядчика</a>'
+
+                var tbody = ''
+
+                if (item.is_active === false) {
+                    color = 'danger'
+                    status = 'Не активный'
+
+                }
+
+                if (index === 0) {
+                    selected = 'aria-selected="true"'
+                    act_cls = 'active'
+                    sho_cls = 'show'
+                }
+
+                tablist += '<li class="nav-item">\n' +
+                    '                        <button type="button" class="nav-link ' + act_cls + '" role="tab" data-bs-toggle="tab"\n' +
+                    '                                data-bs-target="#' + tabid + '" aria-controls="' + tabid + '" ' + selected + '>' + item.name + '\n' +
+                    '                        </button>\n' +
+                    '                    </li>'
+
+                $.each(item.contractors, function (j, cntr) {
+
+                    var srv_ctr_menu = '<a href="/admin-edit/servercontractors/' + cntr.id + '"><i class="bx bx-edit-alt"></i></a>' +
+                        '<a href="javascript: delrow(' + cntr.id + ')"><i class="bx bx-x"></i></a>'
+
+                    var date = new Date(cntr.load_m);
+                    var formattedDate = date.getDate().toString().padStart(2, '0') + '.' + (date.getMonth() + 1).toString().padStart(2, '0') + '.' + date.getFullYear()
+
+                    tbody += '<tr>\n' +
+                        '            <td>' + cntr.contractor.id + '</td>\n' +
+                        '            <td>' + cntr.contractor.name + '</td>\n' +
+                        '            <td>' + cntr.load_percent * 100 + '</td>\n' +
+                        '            <td>' + cntr.load_j_min + ' - ' + cntr.load_j_max + '</td>\n' +
+                        '            <td>' + cntr.load_l_min + ' - ' + cntr.load_l_max + '</td>\n' +
+                        '            <td>' + cntr.load_t_min + ' - ' + cntr.load_t_max + '</td>\n' +
+                        '<td>' + formattedDate + '</td>' +
+                        '            <td>' + cntr.load_i + '</td>\n' +
+                        '<td>' + srv_ctr_menu + '</td>' +
+
+                        '        </tr>'
+                })
+
+
+                tabs += '<div class="tab-pane fade ' + sho_cls + ' ' + act_cls + '" id="' + tabid + '" role="tabpanel">\n' +
+                    '                        <div class="row">\n' +
+                    '                            <div class="col-lg-2">\n' +
+                    '                                <p><i class="bx bxs-server me-2"></i>Имя: </p>\n' +
+                    '                                <p><i class="bx bx-stats me-2"></i>Статус: </p>\n' +
+                    '                                <p><i class="bx bxs-sort-alt me-2"></i>Приоритет: </p>\n' +
+                    '                                <p><i class="bx bx-table me-2"></i>Расписание: </p>\n' +
+                    '                            </div>\n' +
+                    '                            <div class="col">\n' +
+                    '                                <p><b>' + item.name + '</b></p>\n' +
+                    '                                <p><span class="badge badge bg-label-' + color + '">' + status + '</span></p>\n' +
+                    '                                <p><b>' + item.number + '</b></p>\n' +
+                    '                                <p><b>' + item.schedule.title + '</b></p>\n' +
+                    '\n' +
+                    '                            </div>\n' +
+                    '                        </div>\n' +
+                    '\n' +
+                    '                        <div class="mt-3">\n' + srv_menu +
+                    '                        </div>\n' +
+                    '\n' +
+                    '                        <div class="mt-3">\n' +
+                    '                            <table id="' + tableid + '" class="datatables-ajax table table-bordered dataTable no-footer ">\n' +
+                    '                                <thead>\n' +
+                    '                                <tr>\n' +
+                    '                                    <th>#ID</th>\n' +
+                    '                                    <th>Имя</th>\n' +
+                    '                                    <th>Нагрузка, %</th>\n' +
+                    '                                    <th>J</th>\n' +
+                    '                                    <th>L</th>\n' +
+                    '                                    <th>T</th>\n' +
+                    '                                    <th>M</th>\n' +
+                    '                                    <th>I</th>\n' +
+
+                    '                                    <th>Действия</th>\n' +
+                    '                                </tr>\n' +
+                    '                                </thead><tbody>' + tbody + '</tbody></tbody>\n' +
+                    '                            </table>\n' +
+                    '                        </div>\n' +
+                    '                    </div>'
+
+
+            })
+
+            tablist += '<li class="nav-item my-auto ">\n' +
+                '                        <a href="#"\n' +
+                '                           data-bs-toggle="offcanvas"\n' +
+                '                           data-bs-target="#off-create-server"\n' +
+                '                           aria-controls="off-create-server">\n' +
+                '                            <i class="bx bxs-plus-square p-2 "></i>\n' +
+                '                        </a>\n' +
+                '                    </li>'
+
+
+            document.getElementById('tablist').innerHTML = tablist
+            document.getElementById('tabs').innerHTML = tabs
+
+
+            var selectSRVElement = $('#sc-server_id');
+
+            $.each(data, function (index, item) {
+                $('#dt_contrs_' + item.id).DataTable();
+
+                var optionText = item.name
+                var optionValue = item.id
+
+                var option = $('<option>').text(optionText).val(optionValue);
+                selectSRVElement.append(option);
+
+            })
+            selectSRVElement.selectpicker('refresh');
+
+        },
+        error: function () {
+            toastr.error('Ошибка получения серверов')
+
+        }
+    })
+
+</script>
+
+
+<script>
+    function delrow(recid) {
+
+        if (!confirm('Подтвердите удаление подрядчика')) {
+            return
+        }
+
+        $.ajax({
+            type: 'delete',
+            url: '/admin/delete/servercontractors/' + recid,
+            success: function () {
+                location.reload();
+            },
+            error: function () {
+                toastr.error('Ошибка удаления. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+
+    function delrowSch(recid) {
+
+        if (!confirm('Подтвердите удаление расписания')) {
+            return
+        }
+
+        $.ajax({
+            type: 'delete',
+            url: '/admin/delete/schedules/' + recid,
+            success: function () {
+                location.reload();
+            },
+            error: function () {
+                toastr.error('Ошибка удаления. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+
+    <div class="row">
+        <div class="col">
+            <div class="nav-align-top mb-4">
+                <ul class="nav nav-tabs" role="tablist" id="tablist"></ul>
+                <div class="tab-content" id="tabs">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+
+        <div class="col">
+            <div class="card">
+
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Расписание
+                        <a href="##"
+                           data-bs-toggle="offcanvas"
+                           data-bs-target="#off-create-schedule"
+                           aria-controls="off-create-schedule">
+                            <i class="bx bxs-plus-square"></i>
+                        </a>
+                    </h5>
+                </div>
+
+                <div class="card-datatable p-4">
+                    <table id="dt_schedules" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Название</th>
+                            <th>Мин шаг ячеек</th>
+                            <th>Макс шаг ячеек</th>
+                            <th>Начало</th>
+                            <th>Конец (идельаное)</th>
+                            <th>Первое расширение</th>
+                            <th>Последнее расширение</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mt-3">
+        <div class="offcanvas offcanvas-start" id="off-create-server">
+
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title">Новый сервер</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            </div>
+
+            <div class="offcanvas-body mx-0 flex-grow-0">
+                <form id="off-create-server-form">
+
+                    <div class="mt-3">
+                        <label for="new-server-title" class="form-label">Название</label>
+                        <input id="new-server-title" class="form-control" type="text">
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="new-server-number" class="form-label">Приоритет</label>
+                        <input id="new-server-number" class="form-control" type="number">
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="new-server-schedule-id" class="form-label">Расписание</label>
+                        <select id="new-server-schedule-id"
+                                class="selectpicker w-100"
+                                data-style="btn-default"
+                                data-show-subtext="true">
+                        </select>
+                    </div>
+
+                    <div class="mt-5">
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <div class="offcanvas offcanvas-start" id="off-create-schedule">
+
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title">Новое расписание</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            </div>
+
+            <div class="offcanvas-body mx-0 flex-grow-0">
+                <form id="off-create-schedule-form">
+                    <div class="row">
+                        <div class="col mt-3">
+                            <label for="sch-title" class="form-label">Название</label>
+                            <input id="sch-title" class="form-control" type="text">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col mt-3">
+                            <label for="time_min_min_per_step" class="form-label">Минимальный шаг (минут)</label>
+                            <input id="time_min_min_per_step" class="form-control" type="number">
+                        </div>
+
+                        <div class="col mt-3">
+                            <label for="time_max_min_per_step" class="form-label">Максимальный шаг (минут)</label>
+                            <input id="time_max_min_per_step" class="form-control" type="number">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col mt-3">
+                            <label for="time_start" class="form-label">Время начала</label>
+                            <input class="form-control" type="time" step="1" id="time_start" data-mdb-format="yyyy">
+                        </div>
+
+                        <div class="col mt-3">
+                            <label for="time_end" class="form-label">Время конца</label>
+                            <input class="form-control" step="1" type="time" id="time_end">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col mt-3">
+                            <label for="time_first_point" class="form-label">Первая точка</label>
+                            <input class="form-control" step="1" type="time" id="time_first_point">
+                        </div>
+
+                        <div class="col mt-3">
+                            <label for="time_second_point" class="form-label">Вторая точка</label>
+                            <input class="form-control" step="1" type="time" id="time_second_point">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-4">Создать</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <div class="offcanvas offcanvas-start" id="off-create-server-contractor">
+
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title">Добавление подрядчика на сервер</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            </div>
+
+            <div class="offcanvas-body mx-0 flex-grow-0">
+                <form id="off-create-server-contractor-form">
+
+                    <div class="mt-3">
+                        <label for="sc-server_id" class="form-label">Сервер</label>
+                        <select id="sc-server_id"
+                                class="selectpicker w-100"
+                                data-style="btn-default"
+                                data-show-subtext="true">
+                        </select>
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="sc-contractor_id" class="form-label">Подрядчик</label>
+                        <select id="sc-contractor_id"
+                                class="selectpicker w-100"
+                                data-style="btn-default"
+                                data-show-subtext="true">
+                        </select>
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="load_percent" class="form-label">Нагрузка</label>
+                        <input id="load_percent" class="form-control" type="number" step="0.01" value="0.5">
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">J</label>
+                        <div class="row">
+                            <div class="col"><input id="load_j_min" class="form-control" type="number"
+                                                    placeholder="мин, вкл"></div>
+                            <div class="col"><input id="load_j_max" class="form-control" type="number"
+                                                    placeholder="макс, вкл"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">L</label>
+                        <div class="row">
+                            <div class="col"><input id="load_l_min" class="form-control" type="number"
+                                                    placeholder="мин, вкл"></div>
+                            <div class="col"><input id="load_l_max" class="form-control" type="number"
+                                                    placeholder="макс, вкл"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">T</label>
+                        <div class="row">
+                            <div class="col"><input id="load_t_min" class="form-control" type="number"
+                                                    placeholder="мин, вкл"></div>
+                            <div class="col"><input id="load_t_max" class="form-control" type="number"
+                                                    placeholder="макс, вкл"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">I</label>
+                        <input id="load_i" class="form-control" type="number">
+                    </div>
+
+                    <div class="mt-3">
+                        <label for="load_m" class="form-label">M</label>
+                        <input id="load_m" class="form-control" type="date">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-4">Добавить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}

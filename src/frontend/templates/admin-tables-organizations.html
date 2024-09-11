@@ -1,0 +1,456 @@
+{% extends "!base-admin.html" %}
+{% block title %}Организации | {% endblock %}
+{% block css %}
+
+{% endblock %}
+
+{% block js %}
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script>
+
+    function updateOrgStatus(org_id, status_id, server_id) {
+        var texts = {
+            1: 'Ожидает подтверждения',
+            2: 'Активна',
+            3: 'Приостановлена',
+            4: 'Закрыта. Данная организация больше не будет отображаться в текущем списке'
+        }
+
+        if (confirm('Подвердите новый статус организации #ID = ' + org_id + ': ' + texts[status_id])) {
+
+            var pl = {id: org_id, status: status_id}
+
+
+            if (server_id !== null) {
+                pl.server_id = server_id
+            }
+
+            $.ajax({
+                type: "POST",
+                url: '/admin/save',
+                data: JSON.stringify({organizations: [pl]}),
+                dataType: "json",
+                contentType: "application/json",
+                success: function () {
+                    var msg = 'Данные обновлены'
+
+                    if (status_id === 2) {
+                        msg = 'Организация активирована'
+                    }
+
+                    if (status_id === 3) {
+                        msg = 'Организация деактивирована'
+                    }
+
+                    toastr.success(msg)
+                    dt_refresh('dt_orgs', '/admin/get/organizations_full')
+
+                },
+                error: function () {
+                    toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+                }
+            })
+        }
+
+
+    }
+
+
+    function showContacts(org_id) {
+
+        var modal_body = document.getElementById('modal_body');
+        var modal_title = document.getElementById('modal_title');
+        var modal_href_1 = document.getElementById('modal_href_1');
+
+        modal_body.style.display = 'none';
+        modal_body.innerHTML = '<div class="table-responsive">\n' +
+            '                    <table id="dt_contacts" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
+            '                        <thead>\n' +
+            '                        <tr>\n' +
+            '                            <th>Логин</th>\n' +
+            '                            <th>Имя</th>\n' +
+            '                            <th>Доступ</th>\n' +
+            '                            <th>Telegram</th>\n' +
+            '                        </tr>\n' +
+            '                        </thead>\n' +
+            '                    </table>\n' +
+            '                </div>'
+        modal_title.innerHTML = 'Получение данных';
+        modal_href_1.classList.add('disabled')
+
+        var contacts = []
+
+        $.ajax({
+            type: "GET",
+            url: '/admin/get/organizations_full/?id=' + org_id,
+            success: function (org) {
+                org = org[0]
+                modal_title.innerHTML = org.title
+
+                var telegram = '—'
+                if (org.owner.telegram != null) {
+                    telegram = '<a target="_blank" href="https://t.me/' + org.owner.telegram + '"><i class="bx bxl-telegram"></i>' + org.owner.telegram + '</a>'
+                }
+
+                contacts.push(
+                    {
+                        'username': org.owner.username,
+                        'name': org.owner.name,
+                        'level': 'Владелец',
+                        'telegram': telegram,
+                    }
+                )
+
+                $.ajax({
+                    url: '/admin/get_managers?org_id=' + org_id,
+                    type: 'GET',
+                    success: function (mngrs) {
+
+                        for (var i in mngrs) {
+
+                            var telegram = '—'
+                            if (mngrs[i].user.telegram != null) {
+                                telegram = '<a target="_blank" href="https://t.me/' + mngrs[i].user.telegram + '"><i class="bx bxl-telegram"></i>' + mngrs[i].user.telegram + '</a>'
+                            }
+
+                            contacts.push(
+                                {
+                                    'username': mngrs[i].user.username,
+                                    'name': mngrs[i].user.name,
+                                    'level': 'Менеджер (' + mngrs[i].level + ')',
+                                    'telegram': telegram,
+                                }
+                            )
+                        }
+
+                        $('#dt_contacts').DataTable({
+                            data: contacts,
+                            "paging": true,
+                            "pageLength": 10,
+                            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                            "searching": true,
+                            "ordering": true,
+
+                            columns: [
+                                {data: 'username'},
+                                {data: 'name'},
+                                {data: 'level'},
+                                {data: 'telegram'},
+
+                            ],
+                            "order": [[0, "desc"]]
+                        });
+
+                        modal_body.style.display = 'block';
+                        modal_title.innerHTML = org.title;
+                        modal_href_1.setAttribute('href', '/admin-tables/balances?org_id=' + org.id)
+                        modal_href_1.classList.remove('disabled')
+
+                    }
+                })
+            }
+        })
+    }
+
+
+    var INNS = []
+
+    function check_inn(inn) {
+        var c = 0
+        for (var i in INNS) {
+            if (INNS[i] === inn) {
+                c += 1
+            }
+        }
+        if (c > 1) {
+            return true
+        }
+        return false
+    }
+
+    $.ajax({
+        url: '/admin/getBalances',
+        type: 'GET',
+        success: function (bls) {
+            $.ajax({
+                type: "GET",
+                url: '/admin/get/organizations_full',
+                success: function (data) {
+
+                    for (var i in data) {
+                        if (!data[i].is_competitor) {
+                            INNS.push(data[i].inn)
+                        }
+
+                    }
+
+                    $('#dt_orgs').DataTable({
+                        data: data,
+                        "paging": true,
+                        "pageLength": 10,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "searching": true,
+                        "ordering": true,
+
+                        columns: [
+                            {data: 'id'},
+                            {
+                                data: 'title',
+                                render: function (data, type, row) {
+                                    var color = ''
+
+                                    if (row.is_competitor) {
+                                        color = 'text-dark'
+                                    }
+
+                                    return '<span class="text-nowrap ' + color + '">' + data + '</span>'
+                                }
+                            },
+                            {
+                                data: 'inn',
+                                render: function (data, type, row) {
+                                    if (check_inn(data)) {
+                                        return '<span class="text-warning">' + data + ' <i class="bx bx-error"></i></span>'
+                                    }
+                                    return data
+                                }
+                            },
+                            {
+                                data: 'is_competitor',
+                                render: function (data, type, row) {
+                                    return data ? 'Да' : 'Нет'
+                                }
+                            },
+                            {
+                                data: 'id',
+                                render: function (data, type, row) {
+                                    if (bls[data] !== undefined) {
+
+                                        var color = ''
+                                        if (bls[data] < 0) {
+
+                                            color = 'text-danger'
+                                        }
+
+                                        return '<span class="text-nowrap ' + color + '"><b>' + bls[data].toLocaleString('ru-RU') + ' ₽</b></span>'
+                                    }
+
+                                    return '<span class="text-nowrap"><b>0 ₽</b></span>'
+
+
+                                }
+                            },
+                            {
+                                "data": "owner",
+                                "render": function (data, type, row) {
+                                    return '<a href="##" onclick="showContacts(' + row.id + ');" data-bs-toggle="modal" data-bs-target="#modalCenter">Контакты</a>'
+
+                                }
+                            },
+                            {
+                                data: 'balance_limit',
+                                render: function (data, type, row) {
+                                    return '<b>' + data.toLocaleString('ru-RU') + ' ₽</b>'
+                                }
+                            },
+                            {
+                                "data": "level",
+                                "render": function (data, type, row) {
+                                    var cell = '—'
+                                    if (data !== null) {
+                                        return data.title
+                                    }
+                                    return cell
+                                }
+                            },
+                            {
+                                "data": "server",
+                                "render": function (data, type, row) {
+
+                                    if (data !== null) {
+                                        return data.name
+                                    }
+
+                                    return '<b class="text-danger"> Не указано </b>'
+                                }
+                            },
+                            {
+                                "data": "status",
+                                "render": function (data, type, row) {
+
+                                    var color = 'warning'
+                                    var txt = 'Ожидает подтверждения'
+                                    var sp_confilct = ''
+
+                                    if (data === 2) {
+                                        color = 'success'
+                                        txt = 'Активна'
+                                    }
+
+                                    if (data === 3) {
+                                        color = 'danger'
+                                        txt = 'Приоставновлена'
+                                    }
+
+                                    if (data === 4) {
+                                        color = 'secondary'
+                                        txt = 'Закрыта'
+                                    }
+
+
+                                    if (check_inn(row.inn)) {
+                                        sp_confilct = '<span class="badge bg-label-warning">Конфликт ИНН</span>'
+                                    }
+
+                                    var sp_comp = ''
+                                    if (row.is_competitor) {
+                                        sp_comp = '<span class="badge bg-label-secondary">Конкурент</span>'
+                                    }
+
+                                    return '<span class="me-2 badge bg-label-' + color + '">' + txt + '</span>' + sp_confilct + sp_comp
+                                }
+                            },
+
+                            {
+                                "data": "status",
+                                "render": function (data, type, row) {
+
+                                    var edit = '<a target="_blank" href="/admin-tables/balances?org_id=' + row.id + '"><i class="bx bx-detail me-2"></i></a><a href="/admin-edit/organizations/' + row.id + '"><i class="bx bx-edit-alt"></i></a>'
+
+                                    if (data === 1) {
+                                        return edit + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 2 + ', 1)"><i class="bx bx-check"></i></a>' +
+                                            '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 3 + ', null)"><i class="bx bx-block"></i></a>' +
+                                            '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 4 + ', null)"><i class="bx bx-x"></i></a>'
+
+                                    }
+
+                                    if (data === 2) {
+                                        return edit + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 3 + ', null)"><i class="bx bx-block"></i></a>'
+                                            + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 4 + ', null)"><i class="bx bx-x"></i></a>'
+                                    }
+
+                                    if (data === 3) {
+                                        return edit + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 2 + ', null)"><i class="bx bx-check"></i></a>'
+                                            + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 4 + ', null)"><i class="bx bx-x"></i></a>'
+                                    }
+
+                                    if (data === 4) {
+                                        return edit + '<a href="javascript:updateOrgStatus(' + row.id + ', ' + 2 + ', null)"><i class="bx bx-check"></i></a>'
+                                    }
+
+                                }
+                            }
+                        ],
+                        "initComplete": function () {
+
+                            var table = this.api().table().header();
+                            var newRow = $('<tr></tr>');
+                            $(table).append(newRow);
+
+                            var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7];
+
+                            this.api().columns().every(function (i) {
+                                var column = this;
+                                if (searchColumns.includes(i)) {
+
+                                    var input = $('<input type="text" class="form-control" placeholder="" />');
+                                    $(newRow).append($('<th></th>').append(input));
+
+                                    input.on('keyup change clear', function () {
+                                        if (column.search() !== this.value) {
+                                            column.search(this.value).draw();
+                                        }
+                                    });
+                                } else {
+                                    $(newRow).append($('<th></th>'))
+
+                                }
+                            });
+                        },
+
+                        "order": [[0, "desc"]]
+                    });
+
+
+                },
+                error: function () {
+                    toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+                }
+            })
+        }
+    })
+
+
+    function loadBalance(id) {
+        $.ajax({
+            url: '/admin/getBalance?org_id=' + id,
+            type: 'GET',
+            success: function (balance) {
+                if (balance == null) {
+                    balance = 0
+                }
+                document.getElementById('balance_' + id).innerHTML = balance.toLocaleString('ru-RU') + ' ₽'
+                toastr.success('Данные получены')
+            }
+        })
+    }
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Организации
+                        <a href="javascript:dt_refresh('dt_orgs', '/admin/get/organizations_full')"><i
+                                class="bx bx-refresh"></i></a>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-datatable p-4">
+                    <table id="dt_orgs" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Название</th>
+                            <th>ИНН</th>
+                            <th>Конкурент</th>
+                            <th>Баланс</th>
+                            <th>Контакты</th>
+                            <th>Лимит баланса</th>
+                            <th>Уровень</th>
+                            <th>Сервер</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalCenter" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modal_title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modal_body">
+
+            </div>
+            <div class="modal-footer">
+                <a target="_blank" href="##" class="btn btn-label-primary" id="modal_href_1">Касса</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

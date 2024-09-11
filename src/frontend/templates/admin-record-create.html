@@ -1,0 +1,200 @@
+{% extends "!base-admin.html" %}
+{% block title %}Создание записи | {% endblock %}
+{% block head %}
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+
+{% endblock %}
+{% block js %}
+
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<!-- Draw Forms -->
+<script>
+
+    const url = window.location.href;
+    var arr = url.split('/')
+    var table = arr[arr.length - 1]
+    var Ffields = {}
+
+    $.ajax({
+        url: '/admin/fields/' + table,
+        method: 'get',
+        success: function (fields) {
+            Ffields = fields
+
+            var inputs = ''
+            var itl = []
+
+            for (var field in fields) {
+
+                if (fields.hasOwnProperty(field)) {
+
+                    if (UEF.includes(field)) {
+                        continue
+                    }
+
+                    var label = FT.hasOwnProperty(field) ? FT[field] : field;
+                    var el = ''
+                    var type = fields[field]
+
+                    if (field.includes('_id')) {
+
+                        el = '<select id="' + field + '" class="selectpicker w-100" data-live-search="true"></select>'
+                        itl.push(field)
+
+                    } else {
+
+                        if (type === 'INTEGER') {
+                            el = '<input class="form-control" type="number" id="' + field + '">'
+                        } else if (type === 'VARCHAR') {
+                            el = '<input class="form-control" type="text" id="' + field + '">'
+                        } else if (type === 'DATETIME') {
+                            el = '<input class="form-control" type="datetime-local" id="' + field + '">'
+                        } else if (type === 'TIME') {
+                            el = '<input class="form-control" type="time" step="1" id="' + field + '">'
+                        } else if (type === 'FLOAT') {
+                            el = '<input class="form-control" type="number" step="0.1" id="' + field + '">'
+                        } else if (type === 'BOOLEAN') {
+                            el = '<br><input class="form-check-input" type="checkbox" id="' + field + '">'
+                        }
+
+                    }
+                    el = '<div class="col-md-6"><label class="form-label" for="' + field + '">' + label + '</label>' + el + '</div>'
+                    inputs += el
+                }
+
+            }
+
+            $('#edit-form').html(inputs)
+
+
+            var promises = [];
+
+            for (var itl_i in itl) {
+                var promise = $.ajax({
+                    url: '/admin/get/' + FML[itl[itl_i]][0],
+                    type: 'GET'
+
+                }).then(function (select_data) {
+                    var selectElement = $('#' + this);
+
+
+                    selectElement.append($('<option>').text('- Не выбрано -').val(null));
+
+                    $.each(select_data, function (select_data_i, item) {
+                        var optionText = item[FML[this][1]];
+                        var optionValue = item.id;
+
+                        var option = $('<option>').text(optionText).val(optionValue);
+
+                        selectElement.append(option);
+
+                    }.bind(this));
+
+                    selectElement.prop('selectedIndex', 0);
+                    selectElement.selectpicker('draw');
+
+                }.bind(itl[itl_i]));
+
+                promises.push(promise);
+            }
+
+            $.when.apply($, promises).then(function () {
+                $('#save-btn').show()
+            });
+
+
+        },
+
+        error: function (data) {
+            $('#edit-form').html('<div>Таблица не найдена</div>')
+            toastr.error(data.responseJSON.detail);
+        }
+    });
+
+</script>
+
+<!-- Save -->
+<script>
+    document.getElementById('save-form').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+        var submitButton = document.querySelector('button[type="submit"]');
+        submitButton.classList.add('disabled');
+
+        var b_data = {}
+        for (var Ffield in Ffields) {
+
+            if (UEF.includes(Ffield)) {
+                continue
+            }
+
+            if (bools.includes(Ffield)) {
+                b_data[Ffield] = false
+                var chbx = document.getElementById(Ffield)
+                if (chbx.checked) {
+                    b_data[Ffield] = true
+                }
+
+            } else {
+                b_data[Ffield] = document.getElementById(Ffield).value;
+            }
+
+        }
+
+        const url = window.location.href;
+        var arr = url.split('/')
+        var model = arr[arr.length - 1]
+
+        var payload = {}
+        payload[model] = [b_data]
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function () {
+                toastr.success('Сохранено');
+                if (RETURNS[CURRENT_LOCATION] !== undefined) {
+                    setTimeout(function () {
+                        location.replace(RETURNS[CURRENT_LOCATION]);
+                    }, 700);
+                } else {
+                    submitButton.classList.remove('disabled');
+                }
+            },
+            error: function () {
+                toastr.error('Ошибка сохранения. Проверьте правильность введенных данных')
+                submitButton.classList.remove('disabled');
+
+            }
+        })
+    })
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Создание записи</h5>
+            <small class="card-subtitle"></small>
+        </div>
+
+        <form class="card-body" id="save-form" enctype="multipart/form-data">
+            <div class="row g-3" id="edit-form"></div>
+            <div class="pt-4">
+                <button type="submit" id="save-btn" class="btn btn-primary me-sm-3 me-1"
+                        style="display: none;">
+                    Сохранить
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

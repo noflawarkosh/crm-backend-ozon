@@ -1,0 +1,234 @@
+{% extends "!base.html" %}
+{% block title %}Настройки{% endblock %}
+{% block js %}
+
+<script>
+    var sb = document.getElementById('sbpd');
+
+    function good(i, text) {
+        var ve = $('#vf-' + i)
+        var ie = $('#if-' + i)
+        ve.html(text)
+        ve.show()
+        ie.hide()
+        sb.classList.remove('disabled')
+        return true
+    }
+
+    function bad(i, text) {
+        var ve = $('#vf-' + i)
+        var ie = $('#if-' + i)
+        ie.html(text)
+        ie.show()
+        ve.hide()
+        sb.classList.add('disabled')
+        return false
+    }
+
+    function validatePassword(value, n) {
+        const regex = /^[^а-яА-Я]+$/;
+        const pwv1 = document.getElementById('password1').value;
+        const pwv2 = document.getElementById('password2').value;
+
+        if (value.length === 0) {
+            return bad('pw' + n, 'Введите пароль');
+        }
+
+        if (!regex.test(value)) {
+            return bad('pw' + n, 'Пароль может содержать только латинские буквы, цифры и специальные символы');
+        }
+
+        if (value.length < 8) {
+            return bad('pw' + n, 'Минимальная длина пароля 8 символов. Еще хотя бы ' + (8 - value.length) + ' символов')
+        }
+
+        if (value.length > 16) {
+            return bad('pw' + n, 'Максимальная длина пароля 16 символов. Нужно убрать ' + (value.length - 16) + ' символов')
+        }
+
+        if (pwv1 !== pwv2) {
+            bad('pw1', '— Тот, что снизу на меня не похож!')
+            bad('pw2', '— Тот, что сверху на меня не похож!')
+            return false
+        }
+
+        good('pw1', 'То, что нужно!');
+        good('pw2', 'То, что нужно!');
+        return true
+    }
+
+    const password0Input = document.getElementById('password0');
+    const password1Input = document.getElementById('password1');
+    const password2Input = document.getElementById('password2');
+
+    password1Input.addEventListener('input', function (event) {
+        validatePassword(event.target.value, 1);
+    });
+
+    password2Input.addEventListener('input', function (event) {
+        validatePassword(event.target.value, 2);
+    });
+
+</script>
+
+<script>
+    document.getElementById('updateform').addEventListener('submit', function (event) {
+
+        event.preventDefault();
+        var ssb = document.getElementById('sbpd');
+
+        var validated = true
+
+        if (!validatePassword(password1Input.value, 1)) {
+            validated = false
+        }
+
+        if (!validatePassword(password2Input.value, 2)) {
+            validated = false
+        }
+
+        if (!validated) {
+            ssb.classList.remove('disabled');
+            return
+        }
+
+        const currentDomain = window.location.origin;
+        const url = new URL('/auth/updatePassword', currentDomain);
+
+        url.searchParams.append('opw', password0Input.value);
+        url.searchParams.append('npw', password1Input.value);
+
+        ssb.classList.add('disabled');
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+
+            success: function () {
+                toastr.success('Изменения сохранены');
+                ssb.classList.remove('disabled');
+            },
+
+            error: function (data) {
+                toastr.error(data.responseJSON.detail);
+                ssb.classList.remove('disabled');
+            }
+        });
+
+    });
+
+</script>
+
+<script>
+
+    $(document).ready(function () {
+
+        $('#password-toggle0').click(function () {
+            var input = $('#password0');
+            var icon = $('#password-toggle0');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('bx-hide').addClass('bx-show');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('bx-show').addClass('bx-hide');
+            }
+        });
+
+        $('#password-toggle1').click(function () {
+            var input = $('#password1');
+            var icon = $('#password-toggle1');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('bx-hide').addClass('bx-show');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('bx-show').addClass('bx-hide');
+            }
+        });
+
+        $('#password-toggle2').click(function () {
+            var input = $('#password2');
+            var icon = $('#password-toggle2');
+            if (input.attr('type') === 'password') {
+                input.attr('type', 'text');
+                icon.removeClass('bx-hide').addClass('bx-show');
+            } else {
+                input.attr('type', 'password');
+                icon.removeClass('bx-show').addClass('bx-hide');
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row fv-plugins-icon-container">
+        <div class="col-md-12">
+
+            <ul class="nav nav-pills flex-column flex-md-row mb-3">
+                <li class="nav-item"><a class="nav-link" href="/settings"><i
+                        class="bx bx-user me-1"></i> Основные</a></li>
+                <li class="nav-item"><a class="nav-link active" href="javascript:void(0)"><i
+                        class="bx bx-lock-alt me-1"></i> Безопасность</a></li>
+                <li class="nav-item"><a class="nav-link disabled"><i
+                        class="bx bx-bell me-1"></i> Уведомления</a></li>
+            </ul>
+
+            <div class="card mb-4">
+                <form id="updateform" enctype="multipart/form-data">
+                    <h5 class="card-header">Безопасность</h5>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="mb-3 col-md-6 fv-plugins-icon-container">
+                                <label class="form-label">Текущий пароль *</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="password" id="password0" class="form-control" name="password2"
+
+                                           aria-describedby="password" autocomplete="nofill"/>
+                                    <span class="input-group-text cursor-pointer">
+                                        <i class="bx bx-hide" id="password-toggle0"></i>
+                                    </span>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="mb-3 col-md-6 fv-plugins-icon-container">
+                                <label class="form-label">Новый пароль *</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="password" id="password1" class="form-control" name="password2"
+
+                                           aria-describedby="password" autocomplete="nofill"/>
+                                    <span class="input-group-text cursor-pointer"><i class="bx bx-hide"
+                                                                                     id="password-toggle1"></i></span>
+                                    <div class="valid-feedback" id="vf-pw1">То что нужно!</div>
+                                    <div class="invalid-feedback" id="if-pw1"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="mb-3 col-md-6 fv-plugins-icon-container">
+                                <label class="form-label">Повтор пароля *</label>
+                                <div class="input-group input-group-merge">
+                                    <input type="password" id="password2" class="form-control" name="password2"
+
+                                           aria-describedby="password" autocomplete="nofill"/>
+                                    <span class="input-group-text cursor-pointer"><i class="bx bx-hide"
+                                                                                     id="password-toggle2"></i></span>
+                                    <div class="valid-feedback" id="vf-pw2">То что нужно!</div>
+                                    <div class="invalid-feedback" id="if-pw2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button type="submit" class="btn btn-primary me-2" id="sbpd">Сохранить изменения</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

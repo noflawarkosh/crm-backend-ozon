@@ -1,0 +1,186 @@
+{% extends "!base.html" %}
+{% block title %}Настройки{% endblock %}
+
+{% block head %}
+
+
+<link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/apex-charts/apex-charts.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='assets/vendor/css/pages/card-analytics.css') }}"/>
+
+{% endblock %}
+
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/app-ecommerce-dashboard.js') }}"></script>
+
+<script>
+
+</script>
+
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="flex-grow-1">
+
+    <div class="row">
+
+        <div class="col-md-6 col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="card-subtitle text-muted mb-1">Balance</p>
+                        <h5 class="card-title mb-0">$74,382.72</h5>
+                    </div>
+                    <div class="dropdown">
+                        <button type="button" class="btn dropdown-toggle px-0" data-bs-toggle="dropdown"
+                                aria-expanded="false"><i class="bx bx-calendar"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a href="javascript:void(0);" class="dropdown-item d-flex align-items-center">Today</a>
+                            </li>
+                            <li><a href="javascript:void(0);"
+                                   class="dropdown-item d-flex align-items-center">Yesterday</a></li>
+                            <li><a href="javascript:void(0);" class="dropdown-item d-flex align-items-center">Last 7
+                                Days</a></li>
+                            <li><a href="javascript:void(0);" class="dropdown-item d-flex align-items-center">Last 30
+                                Days</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a href="javascript:void(0);" class="dropdown-item d-flex align-items-center">Current
+                                Month</a></li>
+                            <li><a href="javascript:void(0);" class="dropdown-item d-flex align-items-center">Last
+                                Month</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body" style="position: relative;">
+                    <div id="horizontalBarChart" style="min-height: 415px;">
+
+                    </div>
+                    <div class="resize-triggers">
+                        <div class="expand-trigger">
+                            <div style="width: 579px; height: 440px;"></div>
+                        </div>
+                        <div class="contract-trigger"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-6 col-12 mb-4">
+
+            <div class="card h-100">
+
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">Программа лояльнсти</h5>
+                        <small class="card-subtitle"></small>
+                    </div>
+                    <div class="dropdown">
+                        <a>
+                            <i class="bx bx-info-circle"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="d-flex flex-row align-items-center gap-1 mb-2">
+                        <h2 class="mb-2">120 ₽ </h2>
+                        <small class="fw-medium">/ выкуп до 01.05</small>
+                    </div>
+                    <ul class="p-0 m-0">
+                        <li class="d-flex mb-4 mt-4">
+                            <div class="d-flex w-100 flex-wrap justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0 ">Уровень 1</h6>
+                                    <small class="text-muted">0-19 выкупов в неделю</small>
+                                </div>
+                                <div class="user-progress">
+                                    <i class="bx bx-check text-success me-2"></i> <span>120 ₽ / выкуп с 01.05</span>
+                                </div>
+                            </div>
+                        </li>
+
+                        <li class="d-flex mb-4">
+                            <div class="d-flex w-100 flex-wrap justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0">Уровень 2</h6>
+                                    <small class="text-muted">20-39 выкупов в неделю</small>
+                                </div>
+                                <div class="user-progress">
+                                    <i class="bx bx-check text-success me-2"></i> <span>120 ₽ / выкуп с 01.05</span>
+                                </div>
+                            </div>
+                        </li>
+
+                        <li class="d-flex mb-4">
+                            <div class="d-flex w-100 flex-wrap justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0 text-success">Уровень 3</h6>
+                                    <small class="text-muted">40-59 выкупов в неделю</small>
+                                </div>
+                                <div class="user-progress">
+                                    <i class="bx bx-check text-success me-2"></i> <span>100 ₽ / выкуп с 01.05</span>
+                                </div>
+                            </div>
+                        </li>
+
+                        <li class="d-flex mb-4">
+                            <div class="d-flex w-100 flex-wrap justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0">Уровень 4</h6>
+                                    <small class="text-muted">60-79 выкупов в неделю</small>
+                                </div>
+                                <div class="user-progress">
+                                    <i class="bx bx-x text-danger me-2"></i> <span>90 ₽ / выкуп с 01.05</span>
+                                </div>
+                            </div>
+                        </li>
+
+                        <li class="d-flex mb-4">
+                            <div class="d-flex w-100 flex-wrap justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0">Уровень 5</h6>
+                                    <small class="text-muted">80-99 выкупов в неделю</small>
+                                </div>
+                                <div class="user-progress">
+                                    <i class="bx bx-x text-danger me-2"></i><span>80 ₽ / выкуп с 01.05</span>
+                                </div>
+                            </div>
+                        </li>
+
+                        <li class="d-flex">
+                            <div class="d-flex w-100 flex-wrap justify-content-between gap-2">
+                                <div class="me-2">
+                                    <h6 class="mb-0">Уровень 6</h6>
+                                    <small class="text-muted">100+ выкупов в неделю</small>
+                                </div>
+                                <div class="user-progress">
+                                    <i class="bx bx-x text-danger me-2"></i><span>70 ₽ / выкуп с 01.05</span>
+                                </div>
+                            </div>
+                        </li>
+
+
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+{% endblock %}

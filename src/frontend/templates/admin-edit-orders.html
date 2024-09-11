@@ -1,0 +1,273 @@
+{% extends "!base-admin.html" %}
+{% block title %}Редактирование заказа | {% endblock %}
+{% block head %}
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+{% endblock %}
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<!-- Draw Forms -->
+
+
+<script>
+    function save() {
+
+        document.getElementById('save-btn').classList.add('disabled');
+
+        const url = window.location.href;
+        var arr = url.split('/')
+        var id = arr[arr.length - 1]
+
+        var b_data = {
+            'id': id,
+            'wb_keyword': document.getElementById('wb_keyword').value,
+            'wb_price': document.getElementById('wb_price').value,
+            'wb_uuid': document.getElementById('wb_uuid').value,
+            'wb_status': document.getElementById('wb_status').value,
+            'wb_collect_code': document.getElementById('wb_collect_code').value,
+            'description': document.getElementById('description').value,
+            'dt_planed': document.getElementById('dt_planed').value,
+            'dt_ordered': document.getElementById('dt_ordered').value,
+            'dt_delivered': document.getElementById('dt_delivered').value,
+            'dt_collected': document.getElementById('dt_collected').value,
+            'status': document.getElementById('status').value,
+            'size_id': document.getElementById('size_id').value,
+            'account_id': document.getElementById('account_id').value
+        }
+
+
+        var payload = {}
+        payload['orders'] = [b_data]
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify(payload),
+            contentType: "application/json",
+            success: function () {
+                toastr.success('Сохранено');
+                if (RETURNS[CURRENT_LOCATION.substring(0, CURRENT_LOCATION.lastIndexOf('/'))] !== undefined) {
+                    setTimeout(function () {
+                        location.replace(RETURNS[CURRENT_LOCATION.substring(0, CURRENT_LOCATION.lastIndexOf('/'))]);
+                    }, 700);
+                } else {
+                    document.getElementById('save-btn').classList.remove('disabled');
+                }
+
+            },
+            error: function () {
+                toastr.error('Ошибка сохранения. Проверьте правильность введенных данных')
+                document.getElementById('save-btn').classList.remove('disabled');
+            }
+        })
+    }
+</script>
+
+
+<script>
+
+    const url = window.location.href;
+    var arr = url.split('/')
+    var id = arr[arr.length - 1]
+
+    var statuses = {
+        1: 'Черновик',
+        2: 'Оплачен',
+        3: 'Едет',
+        4: 'Готов',
+        5: 'Получен',
+        6: 'Отменен администратором',
+        7: 'Отменен пользователем',
+    }
+
+    $.ajax({
+        url: '/admin/get/orders?id=' + id,
+        method: 'get',
+        success: function (data) {
+
+            if (data.length !== 1) {
+                toastr.error('Заказ не найден')
+                return
+            }
+            data = data[0]
+
+            document.getElementById('card-title').innerText = 'Редактирование заказа #' + id
+            document.getElementById('wb_keyword').value = data.wb_keyword
+            document.getElementById('wb_price').value = data.wb_price
+            document.getElementById('wb_uuid').value = data.wb_uuid
+            document.getElementById('wb_status').value = data.wb_status
+            document.getElementById('wb_collect_code').value = data.wb_collect_code
+            document.getElementById('description').value = data.description
+            document.getElementById('dt_planed').value = data.dt_planed
+            document.getElementById('dt_ordered').value = data.dt_ordered
+            document.getElementById('dt_delivered').value = data.dt_delivered
+            document.getElementById('dt_collected').value = data.dt_collected
+
+            var statusSelect = $('#status');
+            for (let key in statuses) {
+                var option = $('<option>').text(statuses[key]).val(key);
+                if (data.status == key) {
+                    option.attr('selected', 'true');
+                }
+                statusSelect.append(option);
+            }
+            statusSelect.selectpicker('refresh');
+            document.getElementById('card').style.display = 'block'
+
+            $.ajax({
+                url: '/admin/get/sizes_full',
+                method: 'get',
+                success: function (sizes) {
+
+                    var sizeSelect = $('#size_id');
+
+                    for (let i in sizes) {
+
+                        var sn = ''
+
+                        if (sizes[i].wb_size_origName !== null) {
+                            sn = ' | ' + sizes[i].wb_size_origName
+                        }
+
+                        var opTxt = sizes[i].product.organization.title + ' (' + sizes[i].product.organization.inn + ')' +
+                            ' | ' + sizes[i].product.wb_title + ' (' + sizes[i].product.wb_article + ')' + sn
+
+
+                        var option = $('<option>').text(opTxt).val(sizes[i].id);
+
+                        if (data.size_id == sizes[i].id) {
+                            option.attr('selected', 'true');
+                        }
+
+                        sizeSelect.append(option);
+                    }
+                    sizeSelect.selectpicker('refresh');
+
+                    $.ajax({
+                        url: '/admin/get/accounts',
+                        method: 'get',
+                        success: function (accs) {
+
+                            var accsSelect = $('#account_id');
+
+                            for (let i in accs) {
+
+                                var opTxt = accs[i].number
+
+                                var option = $('<option>').text(opTxt).val(accs[i].id);
+
+                                if (data.account_id == accs[i].id) {
+                                    option.attr('selected', 'true');
+                                }
+
+                                accsSelect.append(option);
+                            }
+                            accsSelect.selectpicker('refresh');
+
+                            document.getElementById('save-btn').style.display = 'block'
+
+                        },
+
+                        error: function (data) {
+
+
+                        }
+                    });
+
+
+                },
+
+                error: function (data) {
+
+
+                }
+            });
+
+        },
+
+        error: function (data) {
+
+        }
+    });
+</script>
+
+
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="card" style="display: none" id="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0" id="card-title"></h5>
+            <small class="card-subtitle"></small>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" id="edit-form">
+
+                <div class="col-lg-6">
+                    <label class="form-label">Товар</label>
+                    <select id="size_id" class="form-control selectpicker" data-live-search="true"></select>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Аккаунт</label>
+                    <select id="account_id" class="form-control selectpicker" data-live-search="true"></select>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Системный статус</label>
+                    <select id="status" class="form-control selectpicker" data-live-search="true"></select>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Ключевой запрос</label>
+                    <input class="form-control" type="text" id="wb_keyword">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Стоимость</label>
+                    <input class="form-control" type="number" id="wb_price">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">WB UUID</label>
+                    <input class="form-control" type="text" id="wb_uuid">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">WB Статус</label>
+                    <input class="form-control" type="text" id="wb_status">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Код получения</label>
+                    <input class="form-control" type="text" id="wb_collect_code">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Описание</label>
+                    <input class="form-control" type="text" id="description">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Дата плана</label>
+                    <input class="form-control" type="date" id="dt_planed">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Дата заказа</label>
+                    <input class="form-control" type="date" id="dt_ordered">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Дата доставки</label>
+                    <input class="form-control" type="date" id="dt_delivered">
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Дата получения</label>
+                    <input class="form-control" type="date" id="dt_collected">
+                </div>
+
+
+            </div>
+            <div class="pt-4">
+                <button type="submit" id="save-btn" onclick="save()" class="btn btn-primary me-sm-3 me-1"
+                        style="display: none;">
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

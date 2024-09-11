@@ -1,0 +1,422 @@
+{% extends "!base-admin.html" %}
+{% block title %}Заказы | {% endblock %}
+{% block js %}
+<script>
+    function SD() {
+        const firstDate = new Date();
+        const start_year = firstDate.getFullYear();
+        const start_month = String(firstDate.getMonth() + 1).padStart(2, '0');
+        const start_day = String(firstDate.getDate()).padStart(2, '0');
+        document.getElementById('dts').value = `${start_year}-${start_month}-${start_day}`
+    }
+
+    SD()
+    var T_LIMIT = 3000
+    var T_DATE = document.getElementById('dts').value
+
+    function updateAccountStatus(id, is_active) {
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({accounts: [{id: id, is_active: is_active}]}),
+            contentType: "application/json; charset=utf-8",
+            success: function () {
+                var msg = 'Данные пользователя обновлены'
+
+                if (is_active === true) {
+                    msg = 'Аккаунт активирован'
+                }
+
+                if (is_active === false) {
+                    msg = 'Акакунт деактивирован'
+                }
+
+                toastr.success(msg)
+                dt_refresh('dt_accounts', '/admin/get/accounts')
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+    }
+
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/orders_full?limit=' + T_LIMIT + '&dt_planed=' + T_DATE,
+        success: function (data) {
+            $('#dt_orders').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {
+                        data: 'wb_uuid',
+                        render: function (data, type, row) {
+                            return data === null ? '—' : '<span class="text-nowrap">' + data + '</span>'
+                        }
+                    },
+                    {
+                        data: 'size',
+                        render: function (data, type, row) {
+                            return '<span class="text-nowrap">' + data.product.wb_article + '</span>'
+                        }
+                    },
+                    {
+                        data: 'size',
+                        render: function (data, type, row) {
+                            var s1 = data.wb_size_name === null ? '' : data.wb_size_name
+                            var s2 = data.wb_size_origName === null ? '' : data.wb_size_origName
+
+                            var s = ''
+                            if (s1 !== null) {
+                                s += s1
+                            }
+
+                            if (s2 !== null) {
+                                if (s !== '') {
+                                    s += ' (' + s2 + ')'
+                                } else {
+                                    s += s2
+                                }
+                            }
+
+                            return '<span class="text-nowrap">' + s + '</span>'
+                        }
+                    },
+                    {
+                        render: function (data, type, row) {
+
+                            var color = ''
+
+                            if (row.size.product.organization.is_competitor) {
+                                color = 'text-dark'
+                            }
+
+                            return '<span class="text-nowrap ' + color + '">' + row.size.product.organization.title + ' (' + row.size.product.organization.inn + ')' + '</span>'
+                        }
+                    },
+                    {
+                        data: 'status',
+                        render: function (data, type, row) {
+                            var status = 5
+                            var title = 'Не опознан'
+
+
+                            if (row.status === 1) {
+                                status = 3
+                                title = 'Не оплачен'
+                            }
+
+                            if (row.status === 2) {
+                                status = 2
+                                title = 'Оплачен'
+                            }
+
+                            if (row.status === 3) {
+                                status = 1
+                                title = 'Едет'
+                            }
+
+                            if (row.status === 4) {
+                                status = 1
+                                title = 'Готов'
+                            }
+
+                            if (row.status === 5) {
+                                status = 1
+                                title = 'Получен'
+                            }
+
+                            if (row.status === 6) {
+                                status = 4
+                                title = 'Отменен (А)'
+                            }
+
+                            if (row.status === 7) {
+                                status = 4
+                                title = 'Отменен (П)'
+                            }
+
+
+                            var statuses = {
+                                1: 'success',
+                                2: 'warning',
+                                3: 'info',
+                                4: 'danger',
+                                5: 'secondary',
+                            }
+
+                            return '<span class="badge bg-label-' + statuses[status] + '">' + title + '</span>'
+
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return row.wb_status === null ? '—' : '<span class="text-nowrap">' + row.wb_status + '</span>'
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return row.wb_price === null ? '—' : row.wb_price
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return row.dt_planed === null ? '—' : moment(row.dt_planed).format('DD.MM.YYYY')
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return row.dt_ordered === null ? '—' : moment(row.dt_ordered).format('DD.MM.YYYY')
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return row.dt_delivered === null ? '—' : moment(row.dt_delivered).format('DD.MM.YYYY')
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return row.dt_collected === null ? '—' : moment(row.dt_collected).format('DD.MM.YYYY')
+                        }
+                    },
+                    {
+                        data: 'wb_collect_code',
+                        render: function (data, type, row) {
+                            return data === null ? '—' : '<span class="text-nowrap">' + data + '</span>'
+                        }
+                    },
+                    {
+                        data: 'description',
+                        render: function (data, type, row) {
+                            return data === null ? '—' : '<span class="text-nowrap">' + data + '</span>'
+                        }
+                    },
+
+
+                    {
+                        data: 'account',
+                        render: function (data, type, row) {
+                            return data === null ? '—' : data.number
+                        }
+                    },
+                    {
+                        data: 'account',
+                        "render": function (data, type, row) {
+                            if (data !== null) {
+                                var st = 'danger'
+
+                                if (data.address.is_active === true) {
+                                    st = 'success'
+                                }
+
+                                return '<div class="text-nowrap"><span class="badge badge-dot bg-' + st + ' me-1"></span><span class="text-nowrap">' + data.address.address + '</span></div>'
+                            }
+
+                            return '—'
+                        }
+                    },
+
+
+                    {
+                        "render": function (data, type, row) {
+                            var edit = '<a href="/admin-edit/orders/' + row['id'] + '"><i class="bx bx-edit-alt"></i></a>'
+
+                            if (row.is_active === true) {
+                                edit += '<a href="javascript:updateAccountStatus(' + row['id'] + ', false)"><i class="bx bx-block"></i></a>'
+                            }
+
+                            if (row.is_active === false) {
+                                edit += '<a href="javascript:updateAccountStatus(' + row['id'] + ', true)"><i class="bx bx-check"></i></a>'
+                            }
+                            return edit
+                        }
+                    }
+                ],
+
+                "order": [[0, "desc"]],
+
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+
+            });
+            document.getElementById('ords_ldr').style.display = 'none'
+
+        },
+        error: function () {
+            toastr.error('Ошибка получения аккаунтов')
+            document.getElementById('ords_ldr').style.display = 'none'
+
+        }
+    })
+
+
+    var dateInput = document.getElementById('dts');
+    dateInput.addEventListener('change', function () {
+
+        dateInput.disabled = true
+        T_LIMIT = 0;
+        T_DATE = document.getElementById('dts').value;
+        dt_refresh('dt_orders', '/admin/get/orders_full?limit=' + T_LIMIT + '&dt_planed=' + T_DATE)
+        dateInput.disabled = false
+    });
+
+    function searchID() {
+        T_LIMIT = 0;
+
+        var key = 'id'
+        if (document.getElementById('R2').checked == true) {
+            key = 'wb_uuid'
+        }
+        var value = document.getElementById('search_value').value
+
+        if (key === 'id' && isNaN(Number(value))) {
+            toastr.error('Введите корректное значение ID')
+            return
+        }
+
+        dt_refresh('dt_orders', '/admin/get/orders_full?limit=' + T_LIMIT + '&' + key + '=' + value)
+    }
+
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+
+
+    <div class="row mb-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Фильтрация
+
+                    </h5>
+
+                </div>
+                <div class="card-body">
+
+                    <div class="row">
+                        <div class="col-lg-auto mb-3  pe-0 pr-0 me-0 pe-0">
+                            <input type="date" class="form-control" id="dts">
+                        </div>
+                        <div class="col-lg-auto  pe-0 pr-0 me-0 pe-0">
+                            <div class="col-lg-auto mb-3">
+                                <input type="text" class="form-control" id="search_value" placeholder="Поиск">
+                            </div>
+                        </div>
+
+                        <div class="col-lg-auto me-0 pe-0 pr-0 me-0 pe-0">
+                            <a href="javascript:" onclick="searchID()"
+                               class="btn btn-primary">Поиск</a>
+                        </div>
+                        <div class="col-lg-auto mb-3  pe-0 pr-0 me-0 pe-0">
+                            <a href="javascript:SD(); T_DATE = document.getElementById('dts').value; dt_refresh('dt_orders', '/admin/get/orders_full?dt_planed=' + T_DATE)"
+                               class="btn btn-label-primary">Сегодня</a>
+                        </div>
+
+                        <div class="col-lg-auto me-0">
+                            <a href="javascript:dt_refresh('dt_orders', '/admin/get/orders_full')"
+                               class="btn btn-label-primary">Все время</a>
+                        </div>
+
+                    </div>
+
+                    <div class="row">
+
+                        <div class="col-lg-auto  pe-0 pr-0 me-0 pe-0">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="1" id="R1" name="rad" checked="">
+                                <label class="form-check-label" for="R1">ID</label>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-auto">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" value="2" id="R2" name="rad">
+                                <label class="form-check-label" for="R2">UUID</label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Заказы
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"
+                              id="ords_ldr"></span>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-body table-responsive">
+                    <table id="dt_orders" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>UUID</th>
+                            <th>Артикул</th>
+                            <th>Размер</th>
+                            <th>Организация</th>
+                            <th>Статус</th>
+                            <th>Статус WB</th>
+                            <th>Сумма</th>
+                            <th>Дата планирования</th>
+                            <th>Дата заказа</th>
+                            <th>Дата доставки</th>
+                            <th>Дата получения</th>
+                            <th>Код получения</th>
+                            <th>Описание</th>
+                            <th>Аккаунт</th>
+                            <th>Адрес</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

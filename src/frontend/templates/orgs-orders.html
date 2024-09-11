@@ -1,0 +1,318 @@
+{% extends "!base.html" %}
+{% block title %}Заказы{% endblock %}
+
+{% block head %}
+
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/typeahead-js/typeahead.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/apex-charts/apex-charts.css') }}">
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/css/pages/card-analytics.css') }}"/>
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+
+{% endblock %}
+
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="{{ url_for('static', path='assets/js/app-ecommerce-dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<script>
+
+    const url = window.location.href;
+    var arr = url.split('/')
+    var id = arr[arr.length - 1]
+
+
+    var currentDate = new Date()
+
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+
+    const formattedDate = `${year}-${month}-${day}`
+
+    var dateInput = document.getElementById('plan-date');
+    dateInput.value = formattedDate
+
+    dateInput.addEventListener('change', function () {
+        dateInput.disabled = true
+        dt_refresh('dt_plan', '/orders/getOrders?org_id=' + id + '&date=' + dateInput.value)
+        dateInput.disabled = false
+    });
+
+    $(document).ready(function () {
+        $.ajax({
+            url: '/orders/getOrders?org_id=' + id + '&date=' + dateInput.value,
+            method: 'get',
+            success: function (data) {
+                $('#dt_plan').DataTable({
+                    "data": data,
+                    "paging": true,
+                    "pageLength": 25,
+                    "lengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
+                    "searching": true,
+                    "ordering": true,
+                    autoWidth: false,
+
+                    "columns": [
+                        {"data": 'id'},
+                        {
+                            data: 'product',
+                            render: function (data, type, row) {
+
+                                var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-avatar.jpg') }}"
+
+                                if (data.media !== null) {
+                                    avatar_src = 'https://storage.yandexcloud.net/greedybear/' + data.media
+                                }
+
+                                var wb_url = 'https://www.ozon.ru/product/' + data.ozon_article
+
+                                return '' +
+                                    '<div class="d-flex justify-content-start align-items-center product-name">' +
+                                    '   <div class="avatar-wrapper">' +
+                                    '       <div class="avatar avatar me-2 rounded-2 bg-label-secondary">' +
+                                    '           <img src="' + avatar_src + '">' +
+                                    '       </div>' +
+                                    '   </div>' +
+                                    '   <div class="d-flex flex-column">' +
+                                    '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + data.ozon_title + '</a></h6>' +
+                                    '       <small class="text-muted text-truncate d-none d-sm-block">' + data.ozon_article + '</small>' +
+                                    '   </div>' +
+                                    '</div>'
+                            }
+                        },
+                        {
+                            "data": 'product',
+                            "render": function (data, type, row) {
+
+                                var cell = '—'
+
+                                if (data.ozon_size !== null) {
+                                    cell = data.ozon_size
+                                }
+
+                                return cell
+                            }
+                        },
+                        {
+                            "data": 'ozon_keyword',
+
+                        },
+                        {
+                            "data": 'dt_planed',
+                            render: function (data, type, row) {
+                                return data ? moment(data).format('DD.MM.YYYY') : ''
+                            }
+                        },
+                        {
+                            "data": 'dt_ordered',
+                            render: function (data, type, row) {
+                                return data ? moment(data).format('DD.MM.YYYY') : ''
+                            }
+                        },
+                        {
+                            "data": 'dt_collected',
+                            render: function (data, type, row) {
+                                return data ? moment(data).format('DD.MM.YYYY') : ''
+                            }
+                        },
+                        {
+                            "data": 'ozon_price',
+                            render: function (data, type, row) {
+
+                                if (data !== null) {
+                                    return '<b>' + data + ' ₽</b>'
+                                }
+                                return ''
+                            }
+                        },
+
+                        {
+                            "render": function (data, type, row) {
+
+                                var status = 5
+                                var title = 'Не опознан'
+
+                                if (row.status === 2) {
+                                    status = 2
+                                    title = 'Оплачен'
+                                }
+
+                                if (row.status === 3) {
+                                    status = 1
+                                    title = 'Едет'
+                                }
+
+                                if (row.status === 4) {
+                                    status = 1
+                                    title = 'Готов'
+                                }
+
+                                if (row.status === 5) {
+                                    status = 1
+                                    title = 'Получен'
+                                }
+
+                                if (row.status === 6) {
+                                    status = 4
+                                    title = 'Отменен'
+                                }
+
+                                if (row.status === 7) {
+                                    status = 4
+                                    title = 'Отменен'
+                                }
+
+                                var statuses = {
+                                    1: 'success',
+                                    2: 'warning',
+                                    3: 'info',
+                                    4: 'danger',
+                                    5: 'secondary',
+                                }
+
+                                return '<span class="badge bg-label-' + statuses[status] + '">' + title + '</span>'
+                            }
+                        },
+                        {
+                            "render": function (data, type, row) {
+                                var cell = '—'
+                                if (row.description !== null) {
+                                    cell = row.description
+                                }
+                                return cell
+                            }
+                        },
+
+                    ],
+                    "initComplete": function () {
+
+                        var table = this.api().table().header();
+                        var newRow = $('<tr></tr>');
+                        $(table).append(newRow);
+
+                        var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+                        this.api().columns().every(function (i) {
+                            var column = this;
+                            if (searchColumns.includes(i)) {
+
+                                var input = $('<input type="text" class="form-control" placeholder="" />');
+                                $(newRow).append($('<th></th>').append(input));
+
+                                input.on('keyup change clear', function () {
+                                    if (column.search() !== this.value) {
+                                        column.search(this.value).draw();
+                                    }
+                                });
+                            } else {
+                                $(newRow).append($('<th></th>'))
+
+                            }
+                        });
+                    },
+                    "order": [[0, "desc"]],
+                });
+
+
+            },
+
+            error: function () {
+                toastr.error('Ошибка загрузки заказов')
+
+            }
+
+        });
+    });
+
+    function setCalDate(n) {
+        if (n === 1) {
+            // set yesterday
+            dateInput.value = moment().subtract(1, 'days').format('YYYY-MM-DD')
+            dt_refresh('dt_plan', '/orders/getOrders?org_id=' + id + '&date=' + dateInput.value)
+        }
+
+        if (n === 2) {
+            // set today
+            dateInput.value = moment().format('YYYY-MM-DD')
+            dt_refresh('dt_plan', '/orders/getOrders?org_id=' + id + '&date=' + dateInput.value)
+        }
+
+        if (n === 3) {
+            // set tomorrow
+            dateInput.value = moment().add(1, 'days').format('YYYY-MM-DD')
+            dt_refresh('dt_plan', '/orders/getOrders?org_id=' + id + '&date=' + dateInput.value)
+        }
+
+        if (n === 0) {
+            // set tomorrow
+            dateInput.value = moment().add(1, 'days').format('YYYY-MM-DD')
+            dt_refresh('dt_plan', '/orders/getOrders?org_id=' + id)
+        }
+
+
+    }
+
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row">
+
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Статусы заказов</h5>
+                </div>
+                <div class="card-body table-responsive mt-0 pt-0">
+                    <div class="row mt-3">
+                        <div class="col-lg-auto col-sm">
+                            <input type="date" class="form-control" id="plan-date">
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(1)" class="btn btn-label-secondary" id="dt_1">Вчера</i></a>
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(2)" class="btn btn-label-secondary" id="dt_2">Сегодня</i></a>
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(3)" class="btn btn-label-secondary" id="dt_3">Завтра</i></a>
+                        </div>
+                        <div class="col-auto p-xl-0 p-lg-0 me-1">
+                            <a href="javascript:setCalDate(0)" class="btn btn-label-secondary" id="dt_4">Все время</i></a>
+                        </div>
+
+                    </div>
+                    <table id="dt_plan" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>Товар</th>
+                            <th>Размер</th>
+                            <th>Ключевой запрос</th>
+                            <th>Дата планирования</th>
+                            <th>Дата заказа</th>
+                            <th>Дата получения</th>
+                            <th>Цена товара</th>
+                            <th>Статус</th>
+                            <th>Описание</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,492 @@
+{% extends "!base-admin.html" %}
+{% block title %}Отзывы | {% endblock %}
+{% block js %}
+<script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script>
+    function truncateString(str, maxLength = 15) {
+        if (str.length <= maxLength) {
+            return str;
+        }
+        return str.slice(0, maxLength) + "...";
+    }
+
+    var v_modals = ''
+    var t_modals = ''
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/reviews_full',
+        success: function (data) {
+            $('#dt_addresses').DataTable({
+
+                "data": data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 50, 100, 500, -1], [10, 50, 100, 500, "Все"]],
+                "searching": true,
+                "ordering": true,
+                "columns": [
+                    {data: 'id'},
+                    {
+                        render: function (data, type, row) {
+
+                            var color = ''
+
+                            if (row.size.product.organization.is_competitor) {
+                                color = 'text-dark'
+                            }
+
+                            return '<span class="text-nowrap ' + color + '">' + row.size.product.organization.title + ' (' + row.size.product.organization.inn + ')' + '</span>'
+                        }
+                    },
+
+                    {
+                        render: function (data, type, row) {
+
+                            var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-product.jpg') }}"
+
+                            if (row.size.product.media !== null) {
+                                avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.size.product.media
+                            }
+
+                            var wb_url = 'https://www.wildberries.ru/catalog/' + row.size.product.wb_article + '/detail.aspx'
+
+                            return '' +
+                                '<div class="d-flex justify-content-start align-items-center product-name">' +
+                                '   <div class="avatar-wrapper">' +
+                                '       <div class="avatar avatar me-2 rounded-2 bg-label-secondary">' +
+                                '           <img src="' + avatar_src + '">' +
+                                '       </div>' +
+                                '   </div>' +
+                                '   <div class="d-flex flex-column">' +
+                                '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + truncateString(row.size.product.wb_title) + '</a></h6>' +
+                                '       <small class="text-muted text-truncate d-none d-sm-block">' + row.size.product.wb_article + '</small>' +
+                                '   </div>' +
+                                '</div>'
+                        }
+                    },
+                    {
+                        "data": 'size',
+                        "render": function (data, type, row) {
+                            var cell = '—'
+
+                            if (data.wb_size_origName !== null) {
+                                cell = data.wb_size_origName
+                            }
+
+                            return '<span class="text-nowrap">' + cell + '</span>'
+                        }
+                    },
+                    {
+                        "data": 'text',
+                        "render": function (data, type, row) {
+                            if (data) {
+
+                                var style = 'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.2em; max-height: 3.6em;'
+
+                                t_modals += '<div class="modal fade" id="textExpand-' + row.id + '" aria-labelledby="textExpandLabel-' + row.id + '" tabindex="-1" style="display: none;"\n' +
+                                    '         aria-hidden="true">\n' +
+                                    '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                    '            <div class="modal-content">\n' +
+                                    '                <div class="modal-header">\n' +
+                                    '                    <h5 class="modal-title" id="textExpandLabel-' + row.id + '">' + 'Текст отзыва' + '</h5>\n' +
+                                    '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                    '                </div>\n' +
+                                    '                <div class="modal-body"><p>' + data + '</p></div></div>' +
+                                    '\n' +
+                                    '            </div>\n' +
+                                    '        </div>\n' +
+                                    '    </div>'
+
+
+                                return '<span style="' + style + '">' + '<a href="##" data-bs-toggle="modal" data-bs-target="#textExpand-' + row.id + '"><i class="bx bx-window"></i></a> ' + data + '</span>'
+                            }
+
+                            return '—'
+                        },
+
+                    },
+                    {
+                        "data": 'strict_match',
+                        "render": function (data, type, row) {
+                            return data ? 'Да' : 'Нет'
+                        },
+
+                    },
+                    {
+                        "data": 'is_express',
+                        "render": function (data, type, row) {
+                            return data ? 'Да <i class="bx bxs-zap text-warning"></i>' : 'Нет'
+                        },
+
+                    },
+                    {
+                        "data": 'size',
+                        "render": function (data, type, row) {
+                            var cell = '—'
+                            if (data != null) {
+                                if (row.match === 0) {
+                                    cell = 'Не указывать'
+                                }
+                                if (row.match === 1) {
+                                    cell = 'Соответствует размеру'
+                                }
+                                if (row.match === 2) {
+                                    cell = 'Маломерит'
+                                }
+                                if (row.match === 3) {
+                                    cell = 'Большемерит'
+                                }
+                            }
+                            return '<span class="text-nowrap">' + cell + '</span>'
+                        }
+                    },
+                    {
+                        "data": 'stars',
+                        "render": function (data, type, row) {
+                            var cell = '—'
+                            if (data != null) {
+                                return '<span class="text-nowrap">' + data + '</span>'
+                            }
+                            return cell
+                        }
+                    },
+                    {
+                        "data": 'media',
+                        "render": function (data, type, row) {
+                            if (data.length !== 0) {
+
+                                var media_list = ''
+
+                                $.each(data, function (i, pic) {
+                                    var ftype = pic.media.split('.')[1].toLowerCase()
+
+                                    if (ftype === 'mov' || ftype === 'mp4') {
+                                        media_list = media_list + '<a href="##" data-bs-toggle="modal" data-bs-target="#modalToggle-' + pic.id + '">' +
+                                            '<div class="avatar-wrapper">' +
+                                            '<div class="avatar me-2 rounded-2 bg-label-secondary">' +
+                                            '<i class="bx bx-play"></i>' +
+                                            '</div></div></a>'
+
+                                        v_modals += '<div class="modal fade" id="modalToggle-' + pic.id + '" aria-labelledby="modalToggleLabel-' + pic.id + '" tabindex="-1" style="display: none;"\n' +
+                                            '         aria-hidden="true">\n' +
+                                            '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                            '            <div class="modal-content">\n' +
+                                            '                <div class="modal-header">\n' +
+                                            '                    <h5 class="modal-title" id="modalToggleLabel-' + pic.id + '">' + 'Видео' + '</h5>\n' +
+                                            '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                            '                </div>\n' +
+                                            '                <div class="modal-body"><video controls width="100%">\n' +
+                                            '  <source src="" />\n' +
+                                            '\n' +
+                                            '  <source src="https://storage.yandexcloud.net/greedybear/' + pic.media + '" class="rounded-2" />\n' +
+
+                                            '</video></div>' +
+                                            '\n' +
+                                            '            </div>\n' +
+                                            '        </div>\n' +
+                                            '    </div>'
+                                    } else {
+
+                                        var mu = 'https://storage.yandexcloud.net/greedybear/' + pic.media.split('.')[0] + '.webp'
+                                        media_list = media_list + '' +
+                                            '<div class="avatar-wrapper">' +
+                                            '<div class="avatar me-2 rounded-2 bg-label-secondary">' +
+                                            '<a href="' + mu + '" target="_blank"><img src="' + mu + '" class="rounded-2"></a>' +
+                                            '</div>\<' +
+                                            '/div>'
+                                    }
+
+                                })
+
+                                media_list = '<div class="d-flex justify-content-start align-items-center customer-name">' + media_list + '</div>'
+                                return media_list
+                            }
+
+                            return '—'
+                        }
+                    },
+
+                    {
+                        "data": 'status',
+                        "render": function (data, type, row) {
+                            var text = 'Не опознан'
+                            var color = 'secondary'
+
+                            if (data === 1) {
+                                text = 'Новая задача'
+                                color = 'info'
+                            }
+
+                            if (data === 2) {
+                                text = 'В работе'
+                                color = 'warning'
+                            }
+
+                            if (data === 3) {
+                                text = 'Опубликован'
+                                color = 'success'
+                            }
+
+                            if (data === 4) {
+                                text = 'Отменен'
+                                color = 'danger'
+                            }
+
+
+                            return '<span class="badge bg-label-' + color + '">' + text + '</span>'
+                        }
+                    },
+                    {
+                        data: 'description',
+                        render: function (data, type, row) {
+                            var cell = '—'
+                            if (data != null) {
+                                cell = data
+                            }
+                            return cell
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+
+                            var edit = '<a href="/admin-edit/reviews/' + row['id'] + '"><i class="bx bx-edit-alt"></i></a>'
+
+                            if (row.status === 1) {
+                                edit +=
+                                    '<a href="javascript:updateReviewStatus(' + row['id'] + ', 2)"><i class="bx bx-check"></i></a>' +
+                                    '<a href="javascript:updateReviewStatus(' + row['id'] + ', 4)"><i class="bx bx-x"></i></a>'
+                            }
+
+                            if (row.status === 2) {
+                                edit +=
+                                    '<a href="javascript:PayReview(' + row['id'] + ')"><i class="bx bx-dollar"></i></a>' +
+                                    '<a href="javascript:updateReviewStatus(' + row['id'] + ', 4)"><i class="bx bx-x"></i></a>'
+                            }
+
+                            return edit
+                        }
+                    },
+                ],
+                "order": [[0, "desc"]],
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6, 8];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+            });
+            document.getElementById('v-modals').innerHTML = v_modals
+            document.getElementById('t-modals').innerHTML = t_modals
+        },
+        error: function () {
+            toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+        }
+    })
+
+    function PayReview(id) {
+        if (confirm('Выполнить оплату услуги публикации отзыва?')) {
+            $.ajax({
+                type: "POST",
+                url: '/admin/payReview?review_id=' + id,
+                success: function (data) {
+                    toastr.success(data)
+                    dt_refresh('dt_addresses', '/admin/get/reviews_full')
+                },
+                error: function () {
+                    toastr.error('Ошибка оплаты. Обновите страницу и повторите попытку')
+
+                }
+            })
+        }
+    }
+
+    function updateReviewStatus(id, status) {
+        var sts = {
+            2: 'В работе',
+            4: 'Отменен'
+        }
+
+        if (confirm('Подтвердите новый статус отзыва: ' + sts[status])) {
+            $.ajax({
+                type: "POST",
+                url: '/admin/updateReviewStatus?review_id=' + id + '&status=' + status,
+                success: function () {
+                    toastr.success('Статус отзыва обновлен')
+                    dt_refresh('dt_addresses', '/admin/get/reviews_full')
+                },
+                error: function () {
+                    toastr.error('Ошибка сохранения. Обновите страницу и повторите попытку')
+
+                }
+            })
+        }
+
+    }
+
+
+    function xlsx_new_reviews(flag) {
+        $.ajax({
+            url: '/admin/xlsxReviewsTasks?type=' + flag,
+            type: 'GET',
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function (data, status, xhr) {
+                var disposition = xhr.getResponseHeader('Content-Disposition');
+                var filename = disposition.split('filename=')[1];
+                var blob = new Blob([data], {type: 'application/zip'});
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.setAttribute('download', filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                dt_refresh('dt_addresses', '/admin/get/reviews_full')
+            },
+            error: function (xhr, status, error) {
+
+                if (xhr.status === 415  ) {
+                    toastr.info('Задач нет');
+                } else {
+                    toastr.info('Ошибка выполнения операции');
+                }
+            }
+        });
+    }
+
+
+    document.getElementById('pay_xlsx_input').addEventListener('change', function (event) {
+        const file = event.target.files[0];
+
+        if (file) {
+            var d = document.getElementById('pay_xlsx_btn');
+            d.classList.add('disabled');
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            $.ajax({
+                url: '/admin/xlsxReviewsTasksPay',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+
+                success: function () {
+                    toastr.success('Выполнено');
+                    dt_refresh('dt_addresses', '/admin/get/reviews_full');
+                    d.classList.remove('disabled');
+
+                    // Сброс значения input
+                    event.target.value = '';
+                },
+
+                error: function (data) {
+                    toastr.error(data.responseJSON.detail);
+                    d.classList.remove('disabled');
+
+                    // Сброс значения input в случае ошибки (опционально)
+                    event.target.value = '';
+                }
+            });
+        }
+    });
+
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+    <div class="row mb-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Инструменты
+
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <button type="button" id="xlsx_btn" onclick="xlsx_new_reviews(1)" class="btn btn-primary me-1">
+                        Выгрузить новые задачи
+                    </button>
+                    <button type="button" id="xlsx_btn2" onclick="xlsx_new_reviews(2)"
+                            class="btn btn-label-primary me-1">
+                        Выгрузить новые задачи конкурентов
+                    </button>
+
+                    <a href="javascript:" id="pay_xlsx_btn">
+                        <label class="btn btn-label-primary">
+                            Обновить статусы отзывов из XLSX
+                            <input type="file" id="pay_xlsx_input" class="account-file-input" hidden="">
+                        </label>
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Отзывы
+                        <a href="javascript:dt_refresh('dt_addresses', '/admin/get/reviews_full')" id="rb"><i
+                                class="bx bx-refresh"></i></a>
+                    </h5>
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+                <div class="card-body">
+
+                    <div class="card-datatable table-responsive">
+                        <table id="dt_addresses" class="datatables-ajax table table-bordered dataTable no-footer">
+                            <thead>
+                            <tr>
+                                <th>#ID</th>
+                                <th>Организация</th>
+                                <th>Товар</th>
+                                <th>Размер</th>
+                                <th>Текст</th>
+                                <th>Строгий размер</th>
+                                <th>Срочный</th>
+                                <th>Соответствие</th>
+                                <th>Рейтинг</th>
+                                <th>Медиа</th>
+                                <th>Статус</th>
+                                <th>Описание</th>
+                                <th>Действия</th>
+                            </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="v-modals"></div>
+<div id="t-modals"></div>
+{% endblock %}

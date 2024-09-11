@@ -1,0 +1,352 @@
+{% extends "!base.html" %}
+{% block title %}Пополнение{% endblock %}
+{% block js %}
+<script>
+    function cancelBill() {
+        if (!confirm("Вы действительно хотите отменить пополнение?")) {
+            return
+        }
+
+        const url = window.location.href;
+
+        var arr = url.split('/')
+        var id = arr[arr.length - 1]
+        document.getElementById('page_ldr').style.display = 'block';
+        document.getElementById('btn_approve').classList.add('disabled')
+        document.getElementById('btn_cancel').classList.add('disabled')
+
+        $.ajax({
+
+            url: '/payments/updateBillStatus?bill_id=' + id + '&status_id=4',
+            method: 'post',
+
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                document.getElementById('page_ldr').style.display = 'none';
+                document.getElementById('btn_approve').classList.remove('disabled')
+                document.getElementById('btn_cancel').classList.remove('disabled')
+                toastr.error('Ошибка выполнения операции: ' + data.responseJSON.detail)
+
+            }
+        });
+    }
+
+</script>
+
+<script>
+    function approveBill() {
+        const url = window.location.href;
+
+        var arr = url.split('/')
+        var id = arr[arr.length - 1]
+        document.getElementById('page_ldr').style.display = 'block';
+        document.getElementById('btn_approve').classList.add('disabled')
+        document.getElementById('btn_cancel').classList.add('disabled')
+
+        $.ajax({
+
+            url: '/payments/updateBillStatus?bill_id=' + id + '&status_id=2',
+            method: 'post',
+
+            success: function () {
+                location.reload()
+            },
+
+            error: function (data) {
+                document.getElementById('page_ldr').style.display = 'none';
+                document.getElementById('btn_approve').classList.remove('disabled')
+                document.getElementById('btn_cancel').classList.remove('disabled')
+                toastr.error('Ошибка выполнения операции: ' + data.responseJSON.detail)
+
+            }
+        });
+    }
+
+</script>
+
+<script>
+
+    $(document).ready(function () {
+        document.getElementById('page_ldr').style.display = 'block';
+        const url = window.location.href;
+
+        var arr = url.split('/')
+        var id = arr[arr.length - 1]
+
+        $.ajax({
+
+            url: '/payments/getBill?bill_id=' + id,
+            method: 'get',
+
+            success: function (data) {
+
+                if (data.length === 0) {
+                    location.replace('/404')
+                }
+
+                document.title = 'Пополнение#' + data.id + ' - GreedyBear'
+
+                var date = new Date(data.date);
+                var formattedDate = date.getDate().toString().padStart(2, '0') + '.' + (date.getMonth() + 1).toString().padStart(2, '0') + '.' + date.getFullYear() + ', ' + date.toLocaleTimeString();
+
+                var bill_buttons = ''
+
+                if (data.media) {
+                    bill_buttons = bill_buttons +
+                        '<a href="https://storage.yandexcloud.net/greedybear/' + data.media + '" target="_blank" class="btn btn-label-primary d-grid w-100 mb-3 text-primary"' +
+                        '<a class="d-flex align-items-center justify-content-center text-nowrap">' +
+                        'Скачать вложение\n' +
+                        '</a>\n' +
+                        '</button>'
+                }
+
+                if (data.status.id === 3) {
+                    bill_buttons = bill_buttons + '' +
+                        '<button class="btn btn-primary d-grid w-100 mb-3" onclick="approveBill()" id="btn_approve"' +
+                        '<span class="d-flex align-items-center justify-content-center text-nowrap">' +
+                        'Подтвердить перевод\n' +
+                        '</span>\n' +
+                        '</button>'
+
+
+                    bill_buttons = bill_buttons + '' +
+                        '<button class="btn btn-label-danger d-grid w-100 mb-3" onclick="cancelBill()" id="btn_cancel"' +
+                        '<span class="d-flex align-items-center justify-content-center text-nowrap">' +
+                        'Аннулировать\n' +
+                        '</span>\n' +
+                        '</button>'
+                }
+
+
+                if (bill_buttons.length !== 0) {
+                    document.getElementById('bill-buttons').innerHTML = bill_buttons
+                    document.getElementById('div-buttons').style.display = 'block';
+
+                    if (data.source.id != 1 && data.status.id == 3) {
+                        document.getElementById('checkbox_confirm_div').style.display = 'block'
+                        document.getElementById('btn_approve').classList.add('disabled')
+
+                        $('#checkbox_confirm_div').on('change', function () {
+                            if (document.getElementById('checkbox_confirm').checked === true) {
+                                document.getElementById('btn_approve').classList.remove('disabled')
+                            } else {
+                                document.getElementById('btn_approve').classList.add('disabled')
+                            }
+
+                        })
+                    }
+                }
+
+
+                var status = 'bg-label-warning'
+
+                if (data.status.id === 1) {
+                    status = 'bg-label-success'
+                }
+
+                if (data.status.id === 3) {
+                    status = 'bg-label-info'
+                }
+
+                if (data.status.id === 4) {
+                    status = 'bg-label-danger'
+                }
+
+                if (data.status.id === 5) {
+                    status = 'bg-label-danger'
+                }
+
+                if (data.status.id === 6) {
+                    status = 'bg-label-primary'
+                }
+
+                var bill_status = '<span class="badge ' + status + '"> ' + data.status.title + ' </span>'
+
+
+                document.getElementById('bill-id').innerText = 'Пополнение #' + data.id
+                document.getElementById('bill-date').innerText = formattedDate
+
+                document.getElementById('bill-org-name').innerText = data.organization.title
+                document.getElementById('bill-org-inn').innerText = 'ИНН ' + data.organization.inn
+
+
+                document.getElementById('bill-src-bank').innerText = data.source.bank
+                document.getElementById('bill-src-recipient').innerText = data.source.recipient
+
+                document.getElementById('bill-src-number').innerText = data.source.number
+                document.getElementById('bill-src-bill').innerText = data.source.bill
+
+
+                document.getElementById('bill-src-descr').innerText = data.source.description
+
+                var pp = data.penalty
+                if (!data.penalty) {
+                    pp = 0
+                }
+                document.getElementById('bill-total-1').innerText = data.amount.toLocaleString('ru-RU') + ' ₽'
+                document.getElementById('bill-total-2').innerText = pp.toLocaleString('ru-RU') + ' ₽'
+                document.getElementById('bill-total-3').innerText = (data.amount + pp).toLocaleString('ru-RU') + ' ₽'
+                document.getElementById('bill-status-bottom').innerHTML = bill_status
+
+
+                if (data.source.id === 1) {
+                    $.ajax({
+                        url: '/payments/currentLevel?org_id=' + data.organization.id,
+                        type: 'GET',
+                        success: function (pd) {
+                            var pp = pd.level.price_percent_penalty
+
+                            document.getElementById('ptext-2').innerHTML = 'Если вы впервые оплачиваете таким способом, то с вами свяжется менеджер для уточнения реквизитов плательщика для составления договора и счета на оплату. После оплаты счета нажмите кнопку подтверждения платежа на этой странице. Деньги будут зачислены на ваш баланс после поступления и подтверждения менеджером. ' +
+                                '<p class="mt-3 mb-1">При переводе денежных средств напрямую с расчётного счёта ИП на баланс будет зачислена сумма на ' + pp + '% меньше.</p>'
+                        }
+                    })
+
+                } else {
+                    document.getElementById('ptext-2').innerHTML = 'Осуществляйте перевод <b>строго</b> с банка физического лица.'
+                }
+
+                document.getElementById('div-full-card').style.display = 'flex';
+                document.getElementById('page_ldr').style.display = 'none';
+
+            },
+
+
+            error: function (data) {
+
+                toastr.error('Ошибка загрузки данных. Обновите страницу')
+
+            }
+
+        });
+
+
+    });
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl ps-0 ms-0 flex-grow-1 ">
+
+    <div class="row invoice-preview" id="div-full-card" style="display:none">
+        <!-- Invoice -->
+        <div class="col-xl-9 col-md-8 col-12 mb-md-0 mb-4">
+            <div class="card invoice-preview-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between flex-xl-row flex-md-column flex-sm-row flex-column p-sm-3 p-0">
+                        <div class="mb-xl-0 mb-4">
+                            <div class="d-flex svg-illustration mb-3 gap-2">
+                                <span class="app-brand-text demo text-body fw-bold">greedybear</span>
+                            </div>
+                            <p class="mb-1" id="ptext-1">Выполните перевод по указанным реквизитам, а затем нажмите
+                                кнопку
+                                «Подтвердить перевод». Средства зачислятся на баланс после подтверждения получения
+                                администратором сервиса.</p>
+
+                            <p class="mt-3 mb-1" id="ptext-2"></p>
+
+                            <p class="mt-3 mb-1" id="ptext-3">Подтверждая перевод, вы принимаете эти условия.</p>
+                        </div>
+                        <div>
+                            <h4 id="bill-id"></h4>
+                            <div class="mb-2">
+                                <span class="me-1">Дата создания:</span>
+                                <span class="fw-medium" id="bill-date"></span>
+                            </div>
+                            <div class="mb-2">
+                                <span class="me-1" id="bill-status"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-0">
+                <div class="card-body">
+                    <div class="row p-sm-3 p-0">
+                        <div class="col-xl-6 col-md-12 col-sm-5 col-12 mb-xl-0 mb-md-4 mb-sm-0 mb-4">
+                            <h6 class="pb-2">Отправитель:</h6>
+                            <p class="mb-1" id="bill-org-name"></p>
+                            <p class="mb-1" id="bill-org-inn"></p>
+                        </div>
+                        <div class="col-xl-6 col-md-12 col-sm-7 col-12">
+                            <h6 class="pb-2">Получатель:</h6>
+                            <p class="mb-1" id="bill-src-bank"></p>
+                            <p class="mb-1" id="bill-src-recipient"></p>
+
+                            <b><p class="mb-1 mt-3" id="bill-src-number"></p>
+                                <p class="mb-1" id="bill-src-bill"></p></b>
+
+                            <small class="mb-1 mt-3" id="bill-src-descr"></small>
+
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-0">
+                <div class="card-body">
+                    <div class="row p-sm-3 p-0">
+                        <div class="col-xl-6 col-md-12 col-sm-5 col-12 mb-xl-0 mb-md-4 mb-sm-0 mb-4">
+                            <h6 class="pb-2">Поступит на кошелек:</h6>
+                        </div>
+                        <div class="col-xl-6 col-md-12 col-sm-7 col-12">
+                            <h6 class="pb-2" id="bill-total-1"></h6>
+
+                        </div>
+                        <div class="col-xl-6 col-md-12 col-sm-5 col-12 mb-xl-0 mb-md-4 mb-sm-0 mb-4">
+                            <h6 class="pb-2">Комиссия:</h6>
+                        </div>
+                        <div class="col-xl-6 col-md-12 col-sm-7 col-12">
+                            <h6 class="pb-2" id="bill-total-2"></h6>
+
+                        </div>
+                        <div class="col-xl-6 col-md-12 col-sm-5 col-12 mb-xl-0 mb-md-4 mb-sm-0 mb-4">
+                            <h6 class="pb-2">Необходимо перевести:</h6>
+                        </div>
+                        <div class="col-xl-6 col-md-12 col-sm-7 col-12">
+                            <h6 class="pb-2" id="bill-total-3"></h6>
+                            <p class="mb-1" id="bill-status-bottom"></p>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <hr class="my-0">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <span class="fw-medium">Подсказка:</span>
+                            <span>при выборе получателя <b>расчетный счет ИП/ЮЛ</b>, ожидайте прикрепления вложения с реквизитами счета. Вложение отобразится справа в виде кнопки "Скачать вложение"</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /Invoice -->
+
+
+        <!-- Invoice Actions -->
+        <div class="col-xl-3 col-md-4 col-12 invoice-actions" style="display: none" id="div-buttons">
+            <div class="card">
+                <div class="card-body">
+                    <div id="bill-buttons">
+
+                    </div>
+                    <div id="checkbox_confirm_div" class="form-check" style="display: none">
+                        <input class="form-check-input" type="checkbox" value="" id="checkbox_confirm">
+                        <label class="form-check-label" for="checkbox_confirm">
+                            <b>Я подтверждаю, что перевод был сделан с банковского счёта физического лица</b>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+{% endblock %}

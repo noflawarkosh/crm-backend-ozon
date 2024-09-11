@@ -1,0 +1,395 @@
+{% extends "!base-admin.html" %}
+{% block title %}Платежи | {% endblock %}
+{% block head %}
+<link rel="stylesheet"
+      href="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}"/>
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', path='assets/vendor/libs/bootstrap-select/bootstrap-select.js') }}"></script>
+
+<script>
+
+    function set_watchers(data) {
+        for (var i in data) {
+            (function (id) {
+                document.getElementById('attachment_' + id).addEventListener('change', function (event) {
+                    const file = event.target.files[0];
+
+                    if (file) {
+                        var d = document.getElementById('div_attachment_' + id)
+                        var l = document.getElementById('att_ldr_' + id)
+                        d.style.display = 'none'
+                        l.style.display = 'block'
+
+                        var formData = new FormData();
+                        formData.append('file', event.target.files[0])
+
+                        $.ajax({
+
+                            url: '/admin/uploadBillMedia?bill_id=' + id,
+                            type: 'POST',
+                            data: formData,
+                            contentType: false,
+                            processData: false,
+
+                            success: function () {
+                                toastr.success('Вложение добавлено');
+                                d.style.display = 'block'
+                                l.style.display = 'none'
+
+                                dt_refresh('dt_payments', '/admin/get/bills_full', function (newdata) {
+                                    set_watchers(newdata)
+                                });
+
+                            },
+
+                            error: function (data) {
+                                toastr.error(data.responseJSON.detail);
+                                dt_refresh('dt_payments', '/admin/get/bills_full', function (newdata) {
+                                    set_watchers(newdata)
+                                });
+                                d.style.display = 'block'
+                                l.style.display = 'none'
+                            }
+                        })
+                    }
+                });
+            })(data[i].id);
+
+        }
+    }
+
+    var d_bills = []
+    var file_inputs = []
+
+    function updateBillStatus(id, status_id) {
+
+        var c_bill = d_bills[id]
+
+        var msgs = {
+            1: 'Подтвердите получение средств на ' + c_bill.source.bank + ' (' + c_bill.source.number + ' / ' + c_bill.source.recipient + ') и пополнение счета ' + c_bill.organization.title + ' на сумму ' + c_bill.amount + ' рублей',
+            5: 'Подтвердите отказ в получении средств на ' + c_bill.source.bank + ' (' + c_bill.source.number + ') и отказ ' + c_bill.organization.title + ' в пополнении счета на сумму ' + c_bill.amount + ' рублей',
+        }
+
+        if (!confirm(msgs[status_id])) {
+            return
+        }
+
+        $.ajax({
+            type: "POST",
+            url: '/admin/save',
+            data: JSON.stringify({bills: [{id: id, status_id: status_id}]}),
+            contentType: "application/json; charset=utf-8",
+            success: function () {
+                if (status_id === 1) {
+                    toastr.success('Статус счета #' + c_bill.id + ' на пополнение успешно обновлен: исполнен')
+                    $.ajax({
+                        type: "POST",
+                        url: '/admin/save',
+                        data: JSON.stringify(
+                            {
+                                balance: [
+                                    {
+                                        amount: c_bill.amount,
+                                        org_id: c_bill.organization.id,
+                                        description: 'Пополнение по счету #' + c_bill.id,
+                                        action_id: 1,
+                                    }
+                                ]
+                            }
+                        ),
+                        contentType: "application/json; charset=utf-8",
+                        success: function () {
+
+                            toastr.info('Счет ' + c_bill.organization.title + ' успешно пополнен на сумму ' + c_bill.amount + ' рублей',)
+                            dt_refresh('dt_payments', '/admin/get/bills_full', function (newdata) {
+                                set_watchers(newdata)
+                            });
+
+                        },
+                        error: function () {
+                            toastr.error('Ошибка зачисления средств на счет')
+
+                        }
+                    })
+                }
+                if (status_id === 5) {
+                    toastr.success('Статус счета #' + c_bill.id + ' на пополнение успешно обновлен: отказ')
+                    refresh()
+                }
+
+
+            },
+            error: function () {
+                toastr.error('Ошибка обновления статуса счета')
+
+            }
+        })
+    }
+
+    $.ajax({
+        type: "GET",
+        url: '/admin/get/bills_full',
+        dataType: "json",
+        success: function (data) {
+
+            $('#dt_payments').DataTable({
+                data: data,
+                "paging": true,
+                "pageLength": 10,
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                "searching": true,
+                "ordering": true,
+
+                columns: [
+                    {data: 'id'},
+                    {
+                        data: 'organization',
+                        render: function (data, type, row) {
+                            d_bills[row.id] = row
+
+                            var color = ''
+
+                            if (data.is_competitor) {
+                                color = 'text-dark'
+                            }
+
+                            return '<span class="text-nowrap ' + color+ '">' + row.organization.title + ' (' + row.organization.inn + ')' + '</span>'
+                        }
+                    },
+                    {
+                        data: 'source',
+                        render: function (data, type, row) {
+                            return data.bank + ' (' + data.number + ' / ' + data.recipient + ')'
+                        }
+                    },
+                    {
+                        data: 'amount',
+                        "render": function (data, type, row) {
+                            return '<span class="text-nowrap">' + data + ' ₽' + '</span>'
+                        }
+                    },
+                    {
+                        data: 'penalty',
+                        "render": function (data, type, row) {
+
+                            if (data <= 0) {
+                                return 0 + ' ₽'
+                            }
+                            return '<span class="text-nowrap">' + data + ' ₽' + '</span>'
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            return '<span class="text-nowrap">' + (row.amount + row.penalty) + ' ₽' + '</span>'
+                        }
+                    },
+                    {
+                        data: 'date',
+                        "render": function (data, type, row) {
+                            return moment(data).format('DD.MM.YYYY HH:mm')
+                        }
+                    },
+                    {
+                        data: 'status',
+                        "render": function (data, type, row) {
+
+                            var statuses = {
+                                1: 'success',
+                                2: 'warning',
+                                3: 'info',
+                                4: 'danger',
+                                5: 'danger',
+                                6: 'primary'
+                            }
+
+                            return '<span class="badge bg-label-' + statuses[data.id] + '">' + data.title + '</span>'
+                        }
+                    },
+                    {
+                        data: "media",
+                        "render": function (data, type, row) {
+                            var cell = '—'
+                            if (data !== null) {
+                                cell = '<a target="_blank" href="https://storage.yandexcloud.net/greedybear/' + data + '">Скачать</a>'
+                            }
+                            return cell
+                        }
+                    },
+                    {
+                        "render": function (data, type, row) {
+                            var edit = ''
+
+                            edit += '' +
+                                '<a href="##" id="div_attachment_' + row.id + '"><label class="bx bxs-file-plus">' +
+                                '<input type="file" id="attachment_' + row.id + '" class="account-file-input" hidden="">' +
+                                '</label></a>' +
+                                '<span class="spinner-border spinner-border-sm text-primary" role="status" id="att_ldr_' + row.id + '"\n' +
+                                '                              style="display: none;"></span>'
+
+
+                            if (row.status_id === 2) {
+                                edit += '<a href="javascript:updateBillStatus(' + row['id'] + ', 1)"><i class="bx bx-check"></i></a>'
+                            }
+
+                            if (row.status_id === 2 || row.status_id === 3) {
+                                edit += '<a href="javascript:updateBillStatus(' + row['id'] + ', 5)"><i class="bx bx-x"></i></a>'
+                            }
+                            return edit
+                        }
+                    }
+                ],
+
+                "initComplete": function () {
+
+                    var table = this.api().table().header();
+                    var newRow = $('<tr></tr>');
+                    $(table).append(newRow);
+
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7];
+
+                    this.api().columns().every(function (i) {
+                        var column = this;
+                        if (searchColumns.includes(i)) {
+
+                            var input = $('<input type="text" class="form-control" placeholder="" />');
+                            $(newRow).append($('<th></th>').append(input));
+
+                            input.on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                        } else {
+                            $(newRow).append($('<th></th>'))
+
+                        }
+                    });
+                },
+                "order": [[0, "desc"]]
+            });
+
+            set_watchers(data)
+
+        },
+        error: function () {
+            toastr.error('Ошибка получения счетов')
+
+        }
+    })
+
+    function refresh() {
+        var table = $('#dt_payments').DataTable()
+        $('#rb').hide()
+        table.clear()
+        table.draw()
+        $.ajax({
+            type: "GET",
+            url: '/admin/get/bills_full',
+            dataType: "json",
+            success: function (data) {
+                table.rows.add(data).draw();
+                $('#rb').show()
+            },
+            error: function () {
+                toastr.error('Ошибка обновления данных. Обновите страницу и повторите попытку')
+
+            }
+        })
+
+    }
+
+</script>
+
+<script>
+    $.ajax({
+        url: '/admin/get/organizations',
+        method: 'get',
+        success: function (orgs) {
+
+            var orgsSelect = $('#org_id');
+
+            for (let i in orgs) {
+
+                var opTxt = orgs[i].title
+
+                var option = $('<option>').text(opTxt).val(orgs[i].id);
+
+                orgsSelect.append(option);
+            }
+            orgsSelect.selectpicker('refresh');
+        },
+
+        error: function (data) {
+
+
+        }
+    });
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div class="flex-grow-1">
+
+    <div class="row mb-3">
+
+        <div class="col">
+            <div class="card">
+
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Управление счетами</h5>
+                </div>
+
+                <div class="card-body">
+                    <div class="d-flex">
+                        <select id="org_id" class="form-control selectpicker me-2" data-live-search="true"></select>
+                        <button onclick="window.open('/admin-tables/balances?org_id=' + document.getElementById('org_id').value, '_blank')" class="btn btn-primary">Открыть</i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div class="col">
+            <div class="card">
+
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Пополнения
+                        <a href="javascript:dt_refresh('dt_payments', '/admin/get/bills_full')"><i
+                                class="bx bx-refresh"></i></a>
+                    </h5>
+
+                    <small class="card-subtitle" id="prod-cntr"></small>
+                </div>
+
+                <div class="card-body table-responsive">
+                    <table id="dt_payments" class="datatables-ajax table table-bordered dataTable no-footer">
+                        <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>Организация</th>
+                            <th>Способ</th>
+                            <th>Сумма</th>
+                            <th>Комиссия</th>
+                            <th>Итого</th>
+                            <th>Дата создания</th>
+                            <th>Статус</th>
+                            <th>Вложение</th>
+                            <th>Действия</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
