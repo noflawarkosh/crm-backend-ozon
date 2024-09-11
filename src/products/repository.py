@@ -42,12 +42,10 @@ class ReviewsRepository:
                     select(ReviewModel)
                     .options(
                         selectinload(ReviewModel.media),
-                        selectinload(ReviewModel.size),
-                        selectinload(ReviewModel.size, ProductSizeModel.product)
+                        selectinload(ReviewModel.product),
                     )
-                    .join(ProductSizeModel)
-                    .join(ProductModel)
 
+                    .join(ProductModel)
                     .filter(ProductModel.org_id == org_id)
                     .filter(ProductModel.status != 3)
                 )

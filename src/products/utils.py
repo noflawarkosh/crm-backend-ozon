@@ -11,13 +11,12 @@ from products.schemas import ProductSizeCreateSchema
 from strings import *
 
 
-async def process_reviews_xlsx(file, org_id):
+async def process_reviews_xlsx(file, org_id, stars):
     excel_columns = {
-        'wb_article': 0,
-        'wb_size_origName': 1,
-        'text': 2,
-        'strict_match': 3,
-        'match': 4
+        'ozon_article': 0,
+        'text': 1,
+        'strict_match': 2,
+        'match': 3
     }
 
     xlsx_reviews_content = await file.read()
@@ -32,57 +31,37 @@ async def process_reviews_xlsx(file, org_id):
 
     products = await Repository.get_records(
         ProductModel,
-        filters=[ProductModel.org_id == org_id],
-        select_related=[ProductModel.sizes]
+        filters=[
+            ProductModel.org_id == org_id,
+            ProductModel.status != 3
+        ],
     )
 
-    product_articles = [p.wb_article for p in products]
+    product_articles = [p.ozon_article for p in products]
     records_to_insert = []
 
     for line in xlsx_reviews[6:]:
-        print(line)
+
         # Article check
-        if not line['wb_article']:
+        if not line['ozon_article']:
             raise Exception(f"Строка {line['line_number']}: артикул не указан")
 
-        if line['wb_article'].replace(' ', '') not in product_articles:
+        if line['ozon_article'].replace(' ', '') not in product_articles:
             raise Exception(f"Строка {line['line_number']}: товар не найден")
 
         # Size check
-        selected_size = None
+        selected_product = None
         for product in products:
-            if product.wb_article == line['wb_article']:
+            if product.ozon_article == line['ozon_article']:
 
-                # Search size
-                for size in product.sizes:
-                    if size.wb_size_origName == line['wb_size_origName']:
-                        selected_size = size
-                        break
+                if not product.barcode:
+                    raise Exception(f"Строка {line['line_number']}: штрих-код товара не указан в разделе Товары")
 
-                if line['wb_size_origName'] and not selected_size:
-                    raise Exception(f"Строка {line['line_number']}: размер не найден")
-
-                # Size not found
-                if not selected_size:
-                    if len(product.sizes) == 1 and product.sizes[0].wb_size_origName is None:
-                        selected_size = product.sizes[0]
-                    else:
-                        for size in product.sizes:
-                            if size.wb_in_stock and size.barcode:
-                                selected_size = size
-                                break
-
-                if not selected_size:
-                    raise Exception(
-                        f"Строка {line['line_number']}: не удалось выбрать размер автоматически. Пожалуйста, укажите любой размер товара вручную")
-
-                if not selected_size.wb_in_stock:
-                    raise Exception(f"Строка {line['line_number']}: размер не в наличии")
-
-                if not selected_size.barcode:
-                    raise Exception(f"Строка {line['line_number']}: штрих-код размера не указан")
-
+                selected_product = product
                 break
+
+        if not selected_product:
+            raise Exception(f"Строка {line['line_number']}: товар не найден в разделе Товары")
 
         # Strict match check
         if line['strict_match'] is None:
@@ -112,11 +91,12 @@ async def process_reviews_xlsx(file, org_id):
 
         records_to_insert.append(
             {
-                'size_id': selected_size.id,
+                'product_id': selected_product.id,
                 'status': 1,
                 'text': line['text'],
                 'strict_match': strict_match,
                 'match': match,
+                'stars': stars
             }
         )
 

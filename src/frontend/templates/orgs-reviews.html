@@ -43,27 +43,20 @@
             var selectElement = $('#size_id');
 
             $.each(data, function (i, product) {
-                $.each(product.sizes, function (j, size) {
-                    if (size.is_active) {
-                        var prod_title = product.wb_title
 
-                        if (size.wb_size_origName !== null) {
-                            prod_title = '(' + size.wb_size_origName + ') ' + prod_title
-                        }
+                var prod_title = product.ozon_title
 
-                        if (prod_title.length >= 25) {
-                            prod_title = prod_title.slice(0, 25) + '...'
-                        }
+                if (product.ozon_size !== null) {
+                    prod_title = '(' + product.ozon_size + ') ' + prod_title
+                }
 
-                        var optionText = product.wb_article
-                        var optionValue = size.id
-                        var optionDataSubtext = prod_title
+                var optionText = product.ozon_article
+                var optionValue = product.id
+                var optionDataSubtext = prod_title
 
-                        var option = $('<option>').text(optionText).attr('data-subtext', optionDataSubtext).val(optionValue);
-                        selectElement.append(option);
-                    }
+                var option = $('<option>').text(optionText).attr('data-subtext', optionDataSubtext).val(optionValue);
+                selectElement.append(option);
 
-                });
             });
 
             selectElement.selectpicker('refresh');
@@ -140,11 +133,11 @@
 
                                     var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-product.jpg') }}"
 
-                                    if (row.size.product.media !== null) {
-                                        avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.size.product.media
+                                    if (row.product.media !== null) {
+                                        avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.product.media
                                     }
 
-                                    var wb_url = 'https://www.wildberries.ru/catalog/' + row.size.product.wb_article + '/detail.aspx'
+                                    var wb_url = 'https://www.ozon.ru/product/' + row.product.ozon_article
 
                                     return '' +
                                         '<div class="d-flex justify-content-start align-items-center product-name">' +
@@ -154,19 +147,19 @@
                                         '       </div>' +
                                         '   </div>' +
                                         '   <div class="d-flex flex-column">' +
-                                        '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + truncateString(row.size.product.wb_title) + '</a></h6>' +
-                                        '       <small class="text-muted text-truncate d-none d-sm-block">' + row.size.product.wb_article + '</small>' +
+                                        '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + truncateString(row.product.ozon_title) + '</a></h6>' +
+                                        '       <small class="text-muted text-truncate d-none d-sm-block">' + row.product.ozon_article + '</small>' +
                                         '   </div>' +
                                         '</div>'
                                 }
                             },
                             {
-                                "data": 'size',
+                                "data": 'product',
                                 "render": function (data, type, row) {
                                     var cell = '—'
 
-                                    if (data.wb_size_origName !== null) {
-                                        cell = data.wb_size_origName
+                                    if (data.ozon_size !== null) {
+                                        cell = data.ozon_size
                                     }
 
                                     return '<span class="text-nowrap">' + cell + '</span>'
@@ -218,7 +211,7 @@
 
                             },
                             {
-                                "data": 'size',
+                                "data": 'product',
                                 "render": function (data, type, row) {
                                     var cell = '—'
                                     if (data != null) {
@@ -517,7 +510,7 @@
                     url.searchParams.append('text', txt);
                 }
 
-                url.searchParams.append('size_id', sizeid);
+                url.searchParams.append('product_id', sizeid);
 
                 $.ajax({
                     url: url,
@@ -615,15 +608,12 @@
                         re_review_id.value = data.id
 
                         var re_avatar_src = "{{ url_for('static', path='assets/img/avatars/def-product.jpg') }}"
-                        if (data.size.product.media !== null) {
-                            re_avatar_src = 'https://storage.yandexcloud.net/greedybear/' + data.size.product.media
+                        if (data.product.media !== null) {
+                            re_avatar_src = 'https://storage.yandexcloud.net/greedybear/' + data.product.media
                         }
                         var re_size_name = ''
-                        if (data.size.wb_size_name !== null) {
-                            re_size_name = ' — ' + data.size.wb_size_name
-                        }
-                        if (data.size.wb_size_origName !== null) {
-                            re_size_name = ' — ' + data.size.wb_size_origName
+                        if (data.product.ozon_size !== null) {
+                            re_size_name = ' — ' + data.product.ozon_size
                         }
 
                         re_prod.innerHTML = '<div class="avatar-wrapper">\n' +
@@ -632,9 +622,9 @@
                             '                            </div>\n' +
                             '                        </div>\n' +
                             '                        <div class="d-flex flex-column">\n' +
-                            '                            <h6 class="text-body text-nowrap mb-0">\n' + data.size.product.wb_title + re_size_name +
+                            '                            <h6 class="text-body text-nowrap mb-0">\n' + data.product.ozon_title + re_size_name +
                             '                            </h6>\n' +
-                            '                            <small class="text-muted text-truncate d-none d-sm-block">' + data.size.product.wb_article + '</small>\n' +
+                            '                            <small class="text-muted text-truncate d-none d-sm-block">' + data.product.ozon_article + '</small>\n' +
                             '                        </div>'
 
                         re_text.value = data.text

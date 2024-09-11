@@ -167,29 +167,23 @@ async def create_review(data: Annotated[ReviewCreateSchema, Depends()], files: L
     if data.stars not in [1, 5]:
         raise HTTPException(status_code=400, detail='Рейтинг должен быть 1 или 5')
 
-    sizes = await Repository.get_records(
+    products = await Repository.get_records(
         ProductModel,
-        filters=[ProductModel.id == data.id],
+        filters=[ProductModel.id == data.product_id],
     )
 
-    if len(sizes) != 1:
+    if len(products) != 1:
         raise HTTPException(status_code=404, detail=string_products_product_not_found)
 
-    size = sizes[0]
+    product = products[0]
 
-    if size.product.status == 3:
+    if product.status == 3:
         raise HTTPException(status_code=404, detail=string_products_product_not_found)
 
-    await check_access(size.product.org_id, session.user.id, 8)
+    await check_access(product.org_id, session.user.id, 8)
 
-    if not size.is_active:
-        raise HTTPException(status_code=403, detail=string_product_size_not_active)
-
-    if not size.barcode:
+    if not product.barcode:
         raise HTTPException(status_code=403, detail=string_product_size_no_barcode)
-
-    if not size.wb_in_stock:
-        raise HTTPException(status_code=403, detail=string_product_size_not_in_stock)
 
     if data.match not in [None, 0, 1, 2, 3]:
         raise HTTPException(status_code=404, detail=string_404)
@@ -215,7 +209,7 @@ async def create_review(data: Annotated[ReviewCreateSchema, Depends()], files: L
 @router_reviews.post('/xlsxUpload')
 async def get_reviews_of_organization(org_id: int, file: UploadFile = File(...),
                                       session: UserSessionModel = Depends(authed)):
-    await check_access(org_id, session.user.id, 8)
+    organization, membership = await check_access(org_id, session.user.id, 8)
 
     try:
         await Repository.verify_file(file, ['xlsx'])
@@ -223,7 +217,11 @@ async def get_reviews_of_organization(org_id: int, file: UploadFile = File(...),
         raise HTTPException(status_code=400, detail=f"{file.filename}: {str(e)}")
 
     try:
-        await process_reviews_xlsx(file, org_id)
+        stars = 5
+        if organization.is_competitor:
+            stars = 1
+
+        await process_reviews_xlsx(file, org_id, stars)
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"{file.filename}: {str(e)}")
@@ -241,9 +239,8 @@ async def get_reviews_of_organization(review_id: int, session: UserSessionModel 
     reviews = await Repository.get_records(
         ReviewModel,
         filters=[ReviewModel.id == review_id],
-        select_related=[ReviewModel.size, ReviewModel.media],
-        deep_related=[[ReviewModel.size, ProductSizeModel.product]],
-        joins=[ProductSizeModel, ProductModel],
+        select_related=[ReviewModel.product, ReviewModel.media],
+        joins=[ProductModel],
         filtration=[ProductModel.status != 3]
     )
 
@@ -252,7 +249,7 @@ async def get_reviews_of_organization(review_id: int, session: UserSessionModel 
 
     review = reviews[0]
 
-    await check_access(review.size.product.org_id, session.user.id, 8)
+    await check_access(review.product.org_id, session.user.id, 8)
 
     return ReviewReadSchema.model_validate(review, from_attributes=True)
 
@@ -262,14 +259,13 @@ async def disable_review(review_id: int, session: UserSessionModel = Depends(aut
     reviews = await Repository.get_records(
         ReviewModel,
         filters=[ReviewModel.id == review_id],
-        select_related=[ReviewModel.size],
-        deep_related=[[ReviewModel.size, ProductSizeModel.product]]
+        select_related=[ReviewModel.product],
     )
 
     if len(reviews) != 1:
         raise HTTPException(status_code=404, detail=string_404)
 
-    await check_access(reviews[0].size.product.org_id, session.user.id, 8)
+    await check_access(reviews[0].product.org_id, session.user.id, 8)
 
     if reviews[0].status != 1:
         raise HTTPException(status_code=403, detail=string_403)
@@ -283,8 +279,7 @@ async def update_review(data: Annotated[ReviewUpdateSchema, Depends()], session:
     reviews = await Repository.get_records(
         ReviewModel,
         filters=[ReviewModel.id == data.id],
-        select_related=[ReviewModel.size],
-        deep_related=[[ReviewModel.size, ProductSizeModel.product]]
+        select_related=[ReviewModel.product],
     )
 
     if len(reviews) != 1:
@@ -292,7 +287,7 @@ async def update_review(data: Annotated[ReviewUpdateSchema, Depends()], session:
 
     review = reviews[0]
 
-    organization, membership = await check_access(review.size.product.org_id, session.user.id, 8)
+    organization, membership = await check_access(review.product.org_id, session.user.id, 8)
 
     if not organization.is_competitor and data.stars != 5:
         raise HTTPException(status_code=403, detail=string_403)
@@ -310,8 +305,7 @@ async def update_review(media_id: int, session: UserSessionModel = Depends(authe
         filters=[ReviewMediaModel.id == media_id],
         select_related=[ReviewMediaModel.review],
         deep_related=[
-            [ReviewMediaModel.review, ReviewModel.size],
-            [ReviewMediaModel.review, ReviewModel.size, ProductSizeModel.product]
+            [ReviewMediaModel.review, ReviewModel.product],
         ]
     )
 
@@ -320,7 +314,7 @@ async def update_review(media_id: int, session: UserSessionModel = Depends(authe
 
     review = media[0].review
 
-    await check_access(review.size.product.org_id, session.user.id, 8)
+    await check_access(review.product.org_id, session.user.id, 8)
 
     if review.status != 1:
         raise HTTPException(status_code=403, detail=string_403)
@@ -334,14 +328,13 @@ async def update_review(review_id: int = Form(), files: List[UploadFile] = File(
     reviews = await Repository.get_records(
         ReviewModel,
         filters=[ReviewModel.id == review_id],
-        select_related=[ReviewModel.size],
-        deep_related=[[ReviewModel.size, ProductSizeModel.product]]
+        select_related=[ReviewModel.product],
     )
 
     if len(reviews) != 1:
         raise HTTPException(status_code=404, detail=string_404)
 
-    await check_access(reviews[0].size.product.org_id, session.user.id, 8)
+    await check_access(reviews[0].product.org_id, session.user.id, 8)
 
     if reviews[0].status != 1:
         raise HTTPException(status_code=403, detail=string_403)
