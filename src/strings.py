@@ -1,5 +1,5 @@
-cookies_token_key = 'AT'
-cookies_admin_token_key = 'AAT'
+cookies_token_key = 'OZON_AT'
+cookies_admin_token_key = 'OZON_AAT'
 
 string_500 = 'Произошла ошибка при выполнении операции. Обновите страницу и повторите попытку'
 string_200 = 'Операция успешно выполнена'
