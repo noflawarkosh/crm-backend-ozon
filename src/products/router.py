@@ -75,7 +75,7 @@ async def create_product(data: Annotated[ProductPOSTSchema, Depends()], session:
                         'ozon_article': result['article'],
                         'ozon_title': result['title'],
                         'ozon_size': result['size'],
-                        'ozon_price': result['price'],
+                        'ozon_price': int(result['price']) if result['price'] is not None else None,
                         'barcode': None,
                         'status': 2,
                         'media': filename + '.webp',

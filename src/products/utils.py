@@ -104,54 +104,18 @@ async def process_reviews_xlsx(file, org_id, stars):
 
 
 def parse_ozon_card(url, cookies, useragent):
-    headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent': useragent,
-        'Cookie': cookies
-    }
 
-    # Get size
-    url_params = url.split('ozon.ru')[1]
-    if '/?' in url_params:
-        url_params = url_params.split('/?')[0]
+    r = requests.get(f'http://185.253.181.112:9500/parse/{url}')
 
-    characteristics_request = requests.get(
-        f'https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url={url_params}%2F%3Fadvert%3DBeLssKwguc0z9gMzNLpKXOVaASysBPXyx5mScGciakLQsmUl3BLxdG_e8afbtCdn91kV4vwQzcPbrEdRlYQfPncU_2jXqkOBgyxybLZcyk2myqNBqyu7HRvjNN-2ieK8o4YgFXY167V2z4ow2NQkShC9JXG-4j34x-mApjm1AR1Vi75d5tKH3B0wJxj57b6PcKMZBnLUzQ_PavXS4LfzZTpMH6_eYPTYPvEp_AZv40nwosOHGnhjJ8H_9GR7s_6W%26avtc%3D1%26avte%3D2%26avts%3D1725617827%26layout_container%3DpdpPage2column%26layout_page_index%3D2%26sh%3Dcq6QBHW3jw%26start_page_id%3Dd5b8274c41ae42665e2d292d5ea82787',
-        headers=headers
-    )
-
-    characteristics = json.loads(
-        json.loads(characteristics_request.text)['widgetStates']['webCharacteristics-3282540-pdpPage2column-2'])
-    size = None
-
-    if characteristics['characteristics'][0].get('short'):
-        for i in characteristics['characteristics'][0]['short']:
-            if i['name'] == 'Российский размер':
-                size = i['values'][0]['text']
-    elif characteristics['characteristics'][0].get('long'):
-        for i in characteristics['characteristics'][0]['long']:
-            if i['name'] == 'Российский размер':
-                size = i['values'][0]['text']
-    else:
-        raise Exception('Ошибка чтения характеристик товара')
-
-    # Get title, price, article, image
-    product_request_url = f'{url}/?avtc=1&avte=2&avts=1725617827'
-
-    product_request = requests.get(
-        product_request_url,
-        headers=headers
-    )
-    data = json.loads(product_request.text.split('<script type="application/ld+json">')[1].split('</script>')[0])
-    image_data = requests.get(data['image']).content
+    product_data = json.loads(r.text)
+    image_data = requests.get(product_data['image']).content
 
     res = {
-        'title': data['name'],
-        'price': int(data['offers']['price']),
-        'article': data['sku'],
+        'title': product_data['title'],
+        'price': product_data['price'],
+        'article': product_data['article'],
         'image': image_data,
-        'size': size,
+        'size': product_data['size'],
     }
 
     return res
