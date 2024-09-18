@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Response, Request, HTTPException, Upload
 from admin.models import AdminSessionModel
 from admin.router import authed
 
-from picker.utils import refresh_active_and_collected, generate_plan_xlsx, generate_plan_xlsx_2, generate_plan_main
+from picker.utils import refresh_active_and_collected, generate_plan_xlsx_2, generate_plan_main
 from picker.models import PickerServerScheduleModel, PickerSettingsModel, PickerServerContractorModel, \
     PickerHistoryModel, PickerServerModel
 

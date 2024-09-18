@@ -2,7 +2,12 @@
 {% block title %}Аккаунты | {% endblock %}
 {% block js %}
 <script>
-
+      function truncateString(str) {
+            if (str.length > 50) {
+                return str.slice(0, 50) + '...';
+            }
+            return str;
+        }
     $(document).ready(function () {
 
         const url = window.location.href;
@@ -38,7 +43,7 @@
                                     avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.media
                                 }
 
-                                var wb_url = 'https://www.wildberries.ru/catalog/' + row.wb_article + '/detail.aspx'
+                                var wb_url = 'https://www.ozon.ru/product/' + row.ozon_article
 
                                 return '' +
                                     '<div class="d-flex justify-content-start align-items-center product-name">' +
@@ -48,114 +53,36 @@
                                     '       </div>' +
                                     '   </div>' +
                                     '   <div class="d-flex flex-column">' +
-                                    '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + row.wb_title + '</a></h6>' +
-                                    '       <small class="text-muted text-truncate d-none d-sm-block">' + row.wb_article + '</small>' +
+                                    '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '" title="' + row.ozon_title + '">' + truncateString(row.ozon_title) + '</a></h6>' +
+                                    '       <small class="text-muted text-truncate d-none d-sm-block">' + row.ozon_article + '</small>' +
                                     '   </div>' +
                                     '</div>'
                             }
                         },
                         {
+                            data: 'ozon_size',
                             render: function (data, type, row) {
-                                var price = ''
+                                return row.ozon_size ? row.ozon_size : '—'
+                            }
+                        },
+                        {
+                            data: 'ozon_price',
+                            render: function (data, type, row) {
+                                return '<b>' + data + ' ₽</b>'
+                            }
+                        },
+                        {
+                            data: 'barcode',
+                            render: function (data, type, row) {
 
-
-                                var trs = ''
-
-                                $.each(row.sizes, function (i, size) {
-                                    var p = '—'
-                                    var bdc = 'success'
-                                    var bdt = 'Да'
-
-                                    if (size.wb_in_stock === false) {
-                                        p = '—'
-                                        bdc = 'danger'
-                                        bdt = 'Нет'
-
-                                    } else {
-                                        p = size.wb_price / 100
-                                    }
-
-                                    if (size.barcode === null) {
-                                        var barcode = '—'
-                                    } else {
-                                        barcode = size.barcode
-                                    }
-
-                                    var s_n = null
-
-                                    if (size.wb_size_origName !== null) {
-                                        s_n = size.wb_size_origName
-                                    }
-
-                                    if (size.wb_size_name !== null) {
-                                        if (s_n !== null) {
-                                            s_n += ' (' + size.wb_size_name + ')'
-                                        } else {
-                                            s_n = size.wb_size_name
-                                        }
-
-                                    }
-
-
-                                    trs = trs + '                        <tr>\n' +
-                                        '                            <td>' + (s_n ? s_n : '—') + '</td>\n' +
-                                        '                            <td>' + p + '</td>\n' +
-                                        '                            <td>' + barcode + '</td>\n' +
-                                        '                            <td><span class="badge bg-label-' + bdc + '">' + bdt + '</span></td>\n' +
-                                        '                        </tr>\n'
-
-                                })
-
-                                modal += '<div class="modal fade" id="modalToggle-' + row.id + '" aria-labelledby="modalToggleLabel-' + row.id + '" tabindex="-1" style="display: none;"\n' +
-                                    '         aria-hidden="true">\n' +
-                                    '        <div class="modal-dialog modal-dialog-centered modal-xl">\n' +
-                                    '            <div class="modal-content">\n' +
-                                    '                <div class="modal-header">\n' +
-                                    '                    <h5 class="modal-title" id="modalToggleLabel-' + row.id + '">' + row.wb_article + ': ' + row.wb_title + '</h5>\n' +
-                                    '                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
-                                    '                </div>\n' +
-                                    '                <div class="modal-body">\n' +
-                                    '                  <div class="table-responsive text-nowrap" >' +
-                                    '                    <table class="table text-nowrap">\n' +
-                                    '                        <thead>\n' +
-                                    '                        <tr>\n' +
-                                    '                            <th>Размер</th>\n' +
-                                    '                            <th>Стоимость</th>\n' +
-                                    '                            <th>Штрих-код</th>\n' +
-                                    '                            <th>Наличие</th>\n' +
-                                    '                        </tr>\n' +
-                                    '                        </thead>\n' +
-                                    '                        <tbody class="table-border-bottom-0">\n' + trs +
-                                    '                        </tbody>\n' +
-                                    '                    </table>\n' +
-                                    '        </div>\n</div>' +
-                                    '            </div>\n' +
-                                    '        </div>\n' +
-                                    '    </div>'
-
-                                price = '<div><a href="javascript:" data-bs-toggle="modal" data-bs-target="#modalToggle-' + row.id + '">Размеров: ' + row.sizes.length + '</a></div>'
-
-                                return '<span class="text-nowrap">' + price + '</span>'
-
+                                return data ? data : '—'
                             }
                         },
                         {
                             render: function (data, type, row) {
-                                return '<span class="text-nowrap">' + moment(row.last_update).format('DD.MM.YYYY HH:mm') + '</span>'
+                                return '<a target="_blank" href="/admin-edit/products/' + row.id + '"><i class="bx bx-edit-alt"></i></a>'
                             }
                         },
-                        {
-                        render: function (data, type, row) {
-
-                            var color = ''
-
-                            if (row.organization.is_competitor) {
-                                color = 'text-dark'
-                            }
-
-                            return '<span class="text-nowrap ' + color+ '">' + row.organization.title + ' (' + row.organization.inn + ')' + '</span>'
-                        }
-                    },
 
                     ],
                     "order": [[0, "desc"]],
@@ -165,7 +92,7 @@
                         var newRow = $('<tr></tr>');
                         $(table).append(newRow);
 
-                        var searchColumns = [0, 1, 2, 3, 4];
+                        var searchColumns = [0, 1, 2, 3, 4, 5];
 
                         this.api().columns().every(function (i) {
                             var column = this;
@@ -221,10 +148,11 @@
                         <thead>
                         <tr>
                             <th>#ID</th>
-                            <th>Товар</th>
-                            <th>О товаре</th>
-                            <th>Обновление WB</th>
-                            <th>Организация</th>
+                            <th style="max-width: 20%">Товар</th>
+                            <th>Размер</th>
+                            <th>Цена</th>
+                            <th style="min-width: 12%">Штрих-код</th>
+                            <th>Действия</th>
 
                         </tr>
                         </thead>

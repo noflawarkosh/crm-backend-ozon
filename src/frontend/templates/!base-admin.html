@@ -256,8 +256,8 @@
         'district': 'Район',
         'contractor_id': 'Подрядчик',
         'order_id': 'Заказ',
-        'wb_uuid': 'ID заказа на WB',
-        'wb_keyword': 'Ключевой запрос',
+        'ozon_uuid': 'ID заказа на OZON',
+        'ozon_keyword': 'Ключевой запрос',
         'dt_ordered': 'Дата заказа',
         'dt_delivered': 'Дата доставки',
         'dt_collected': 'Дата получения',
@@ -275,8 +275,8 @@
         'al': 'Дни жизни аккаунта',
         'lo': 'Макс кол-во дней с последнего заказа на аккаунте',
         'k_format': 'Формат записи даты в ячейку K листа плана',
-        'wb_price': 'Цена',
-        'wb_status': 'Статус',
+        'ozon_price': 'Цена',
+        'ozon_status': 'Статус',
         'is_cancelled': 'Отменен',
         'dt_planed': 'Дата планирования',
         'wb_article': 'Артикул',
@@ -319,6 +319,11 @@
         'is_competitor': 'Конкурент',
         'unfreeze_product': 'Разморозить стоимость товара',
         'priority': 'Приоритет',
+        'ozon_title': 'Название',
+        'ozon_size': 'Размер',
+        'ozon_article': 'Артикул',
+        'updated_at': 'Обновлен',
+        'added_at': 'Добавлен'
     }
 
     const CURRENT_LOCATION = window.location.pathname
@@ -543,8 +548,7 @@
         'server_id': ['servers', 'name'],
         'address_id': ['addresses', 'address'],
         'org_id': ['organizations', 'title'],
-        'size_id': ['sizes', 'wb_size_name'],
-        'product_id': ['products', 'wb_title'],
+        'product_id': ['products', 'ozon_article'],
         'account_id': ['accounts', 'number'],
         'level_id': ['levels', 'title'],
         'status_id': ['address_statuses', 'title'],

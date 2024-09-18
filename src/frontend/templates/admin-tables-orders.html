@@ -47,6 +47,8 @@
         type: "GET",
         url: '/admin/get/orders_full?limit=' + T_LIMIT + '&dt_planed=' + T_DATE,
         success: function (data) {
+            console.log(data)
+
             $('#dt_orders').DataTable({
                 data: data,
                 "paging": true,
@@ -58,34 +60,23 @@
                 columns: [
                     {data: 'id'},
                     {
-                        data: 'wb_uuid',
+                        data: 'ozon_uuid',
                         render: function (data, type, row) {
                             return data === null ? '—' : '<span class="text-nowrap">' + data + '</span>'
                         }
                     },
                     {
-                        data: 'size',
                         render: function (data, type, row) {
-                            return '<span class="text-nowrap">' + data.product.wb_article + '</span>'
+                            return '<span class="text-nowrap">' + row.product.ozon_article + '</span>'
                         }
                     },
                     {
-                        data: 'size',
+
                         render: function (data, type, row) {
-                            var s1 = data.wb_size_name === null ? '' : data.wb_size_name
-                            var s2 = data.wb_size_origName === null ? '' : data.wb_size_origName
-
                             var s = ''
-                            if (s1 !== null) {
-                                s += s1
-                            }
 
-                            if (s2 !== null) {
-                                if (s !== '') {
-                                    s += ' (' + s2 + ')'
-                                } else {
-                                    s += s2
-                                }
+                            if (row.product.ozon_size !== null) {
+                                s = row.product.ozon_size
                             }
 
                             return '<span class="text-nowrap">' + s + '</span>'
@@ -96,11 +87,11 @@
 
                             var color = ''
 
-                            if (row.size.product.organization.is_competitor) {
+                            if (row.product.organization.is_competitor) {
                                 color = 'text-dark'
                             }
 
-                            return '<span class="text-nowrap ' + color + '">' + row.size.product.organization.title + ' (' + row.size.product.organization.inn + ')' + '</span>'
+                            return '<span class="text-nowrap ' + color + '">' + row.product.organization.title + ' (' + row.product.organization.inn + ')' + '</span>'
                         }
                     },
                     {
@@ -160,12 +151,12 @@
                     },
                     {
                         "render": function (data, type, row) {
-                            return row.wb_status === null ? '—' : '<span class="text-nowrap">' + row.wb_status + '</span>'
+                            return row.ozon_status === null ? '—' : '<span class="text-nowrap">' + row.ozon_status + '</span>'
                         }
                     },
                     {
                         "render": function (data, type, row) {
-                            return row.wb_price === null ? '—' : row.wb_price
+                            return row.ozon_price === null ? '—' : row.ozon_price
                         }
                     },
                     {
@@ -189,7 +180,7 @@
                         }
                     },
                     {
-                        data: 'wb_collect_code',
+                        data: 'ozon_collect_code',
                         render: function (data, type, row) {
                             return data === null ? '—' : '<span class="text-nowrap">' + data + '</span>'
                         }

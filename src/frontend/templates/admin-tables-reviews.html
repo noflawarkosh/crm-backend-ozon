@@ -32,11 +32,11 @@
 
                             var color = ''
 
-                            if (row.size.product.organization.is_competitor) {
+                            if (row.product.organization.is_competitor) {
                                 color = 'text-dark'
                             }
 
-                            return '<span class="text-nowrap ' + color + '">' + row.size.product.organization.title + ' (' + row.size.product.organization.inn + ')' + '</span>'
+                            return '<span class="text-nowrap ' + color + '">' + row.product.organization.title + ' (' + row.product.organization.inn + ')' + '</span>'
                         }
                     },
 
@@ -45,11 +45,11 @@
 
                             var avatar_src = "{{ url_for('static', path='assets/img/avatars/def-product.jpg') }}"
 
-                            if (row.size.product.media !== null) {
-                                avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.size.product.media
+                            if (row.product.media !== null) {
+                                avatar_src = 'https://storage.yandexcloud.net/greedybear/' + row.product.media
                             }
 
-                            var wb_url = 'https://www.wildberries.ru/catalog/' + row.size.product.wb_article + '/detail.aspx'
+                            var wb_url = 'https://www.ozon.ru/product/' + row.product.ozon_article
 
                             return '' +
                                 '<div class="d-flex justify-content-start align-items-center product-name">' +
@@ -59,8 +59,8 @@
                                 '       </div>' +
                                 '   </div>' +
                                 '   <div class="d-flex flex-column">' +
-                                '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + truncateString(row.size.product.wb_title) + '</a></h6>' +
-                                '       <small class="text-muted text-truncate d-none d-sm-block">' + row.size.product.wb_article + '</small>' +
+                                '       <h6 class="text-body text-nowrap mb-0"><a target="_blank" href="' + wb_url + '">' + truncateString(row.product.ozon_title) + '</a></h6>' +
+                                '       <small class="text-muted text-truncate d-none d-sm-block">' + row.product.ozon_article + '</small>' +
                                 '   </div>' +
                                 '</div>'
                         }
@@ -70,8 +70,8 @@
                         "render": function (data, type, row) {
                             var cell = '—'
 
-                            if (data.wb_size_origName !== null) {
-                                cell = data.wb_size_origName
+                            if (row.product.ozon_size !== null) {
+                                cell = row.product.ozon_size
                             }
 
                             return '<span class="text-nowrap">' + cell + '</span>'

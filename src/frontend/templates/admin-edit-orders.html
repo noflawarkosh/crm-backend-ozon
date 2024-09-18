@@ -22,18 +22,18 @@
 
         var b_data = {
             'id': id,
-            'wb_keyword': document.getElementById('wb_keyword').value,
-            'wb_price': document.getElementById('wb_price').value,
-            'wb_uuid': document.getElementById('wb_uuid').value,
-            'wb_status': document.getElementById('wb_status').value,
-            'wb_collect_code': document.getElementById('wb_collect_code').value,
+            'ozon_keyword': document.getElementById('ozon_keyword').value,
+            'ozon_price': document.getElementById('ozon_price').value,
+            'ozon_uuid': document.getElementById('ozon_uuid').value,
+            'ozon_status': document.getElementById('ozon_status').value,
+            'ozon_collect_code': document.getElementById('ozon_collect_code').value,
             'description': document.getElementById('description').value,
             'dt_planed': document.getElementById('dt_planed').value,
             'dt_ordered': document.getElementById('dt_ordered').value,
             'dt_delivered': document.getElementById('dt_delivered').value,
             'dt_collected': document.getElementById('dt_collected').value,
             'status': document.getElementById('status').value,
-            'size_id': document.getElementById('size_id').value,
+            'product_id': document.getElementById('product_id').value,
             'account_id': document.getElementById('account_id').value
         }
 
@@ -94,11 +94,11 @@
             data = data[0]
 
             document.getElementById('card-title').innerText = 'Редактирование заказа #' + id
-            document.getElementById('wb_keyword').value = data.wb_keyword
-            document.getElementById('wb_price').value = data.wb_price
-            document.getElementById('wb_uuid').value = data.wb_uuid
-            document.getElementById('wb_status').value = data.wb_status
-            document.getElementById('wb_collect_code').value = data.wb_collect_code
+            document.getElementById('ozon_keyword').value = data.ozon_keyword
+            document.getElementById('ozon_price').value = data.ozon_price
+            document.getElementById('ozon_uuid').value = data.ozon_uuid
+            document.getElementById('ozon_status').value = data.ozon_status
+            document.getElementById('ozon_collect_code').value = data.ozon_collect_code
             document.getElementById('description').value = data.description
             document.getElementById('dt_planed').value = data.dt_planed
             document.getElementById('dt_ordered').value = data.dt_ordered
@@ -117,27 +117,27 @@
             document.getElementById('card').style.display = 'block'
 
             $.ajax({
-                url: '/admin/get/sizes_full',
+                url: '/admin/get/products_full',
                 method: 'get',
-                success: function (sizes) {
+                success: function (products) {
 
-                    var sizeSelect = $('#size_id');
+                    var sizeSelect = $('#product_id');
 
-                    for (let i in sizes) {
+                    for (let i in products) {
 
                         var sn = ''
 
-                        if (sizes[i].wb_size_origName !== null) {
-                            sn = ' | ' + sizes[i].wb_size_origName
+                        if (products[i].ozon_size !== null) {
+                            sn = ' | ' + products[i].ozon_size
                         }
 
-                        var opTxt = sizes[i].product.organization.title + ' (' + sizes[i].product.organization.inn + ')' +
-                            ' | ' + sizes[i].product.wb_title + ' (' + sizes[i].product.wb_article + ')' + sn
+                        var opTxt = products[i].organization.title + ' (' + products[i].organization.inn + ')' +
+                            ' | ' + products[i].ozon_article  + sn
 
 
-                        var option = $('<option>').text(opTxt).val(sizes[i].id);
+                        var option = $('<option>').text(opTxt).val(products[i].id);
 
-                        if (data.size_id == sizes[i].id) {
+                        if (data.product_id == products[i].id) {
                             option.attr('selected', 'true');
                         }
 
@@ -208,7 +208,7 @@
 
                 <div class="col-lg-6">
                     <label class="form-label">Товар</label>
-                    <select id="size_id" class="form-control selectpicker" data-live-search="true"></select>
+                    <select id="product_id" class="form-control selectpicker" data-live-search="true"></select>
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label">Аккаунт</label>
@@ -220,23 +220,23 @@
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label">Ключевой запрос</label>
-                    <input class="form-control" type="text" id="wb_keyword">
+                    <input class="form-control" type="text" id="ozon_keyword">
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label">Стоимость</label>
-                    <input class="form-control" type="number" id="wb_price">
+                    <input class="form-control" type="number" id="ozon_price">
                 </div>
                 <div class="col-lg-6">
-                    <label class="form-label">WB UUID</label>
-                    <input class="form-control" type="text" id="wb_uuid">
+                    <label class="form-label">OZON UUID</label>
+                    <input class="form-control" type="text" id="ozon_uuid">
                 </div>
                 <div class="col-lg-6">
-                    <label class="form-label">WB Статус</label>
-                    <input class="form-control" type="text" id="wb_status">
+                    <label class="form-label">OZON Статус</label>
+                    <input class="form-control" type="text" id="ozon_status">
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label">Код получения</label>
-                    <input class="form-control" type="text" id="wb_collect_code">
+                    <input class="form-control" type="text" id="ozon_collect_code">
                 </div>
                 <div class="col-lg-6">
                     <label class="form-label">Описание</label>

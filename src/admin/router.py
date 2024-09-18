@@ -99,9 +99,9 @@ tables_access = {
     'reviews_full': (
         ReviewModel, 128,
         {
-            'select_related': [ReviewModel.media],
+            'select_related': [ReviewModel.media, ReviewModel.product],
             'deep_related': [
-
+                [ReviewModel.product, ProductModel.organization]
             ]
         }
     ),
@@ -114,9 +114,10 @@ tables_access = {
     'orders_full': (
         OrdersOrderModel, 16,
         {
-            'select_related': [OrdersOrderModel.account],
+            'select_related': [OrdersOrderModel.account, OrdersOrderModel.product],
             'deep_related': [
                 [OrdersOrderModel.account, OrdersAccountModel.address],
+                [OrdersOrderModel.product, ProductModel.organization]
 
             ]
         }
@@ -401,20 +402,18 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
             ],
             select_related=[
                 ReviewModel.media,
-                ReviewModel.size
+                ReviewModel.product
             ],
             filtration=[
                 ReviewModel.media == None,
                 OrganizationModel.is_competitor == False,
             ],
             joins=[
-                ProductSizeModel,
                 ProductModel,
                 OrganizationModel
             ],
             deep_related=[
-                [ReviewModel.size, ProductSizeModel.product],
-                [ReviewModel.size, ProductSizeModel.product, ProductModel.organization]
+                [ReviewModel.product, ProductModel.organization]
             ]
         )
 
@@ -429,20 +428,18 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
             ],
             select_related=[
                 ReviewModel.media,
-                ReviewModel.size
+                ReviewModel.product
             ],
             filtration=[
                 ReviewModel.media == None,
                 OrganizationModel.is_competitor == True,
             ],
             joins=[
-                ProductSizeModel,
                 ProductModel,
                 OrganizationModel
             ],
             deep_related=[
-                [ReviewModel.size, ProductSizeModel.product],
-                [ReviewModel.size, ProductSizeModel.product, ProductModel.organization]
+                [ReviewModel.product, ProductModel.organization]
             ]
         )
 
@@ -461,10 +458,10 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
 
     tasks = {}
     for review in reviews:
-        if tasks.get(review.size.product.wb_article):
-            tasks[review.size.product.wb_article].append(review)
+        if tasks.get(review.product.ozon_article):
+            tasks[review.product.ozon_article].append(review)
         else:
-            tasks[review.size.product.wb_article] = [review]
+            tasks[review.product.ozon_article] = [review]
 
     zip_file = BytesIO()
     with ZipFile(zip_file, 'w') as zip_archive:
@@ -581,10 +578,9 @@ async def update_review_status(review_id: int, session: AdminSessionModel = Depe
         filters=[
             ReviewModel.id == review_id
         ],
-        select_related=[ReviewModel.media, ReviewModel.size],
+        select_related=[ReviewModel.media, ReviewModel.product],
         deep_related=[
-            [ReviewModel.size, ProductSizeModel.product],
-            [ReviewModel.size, ProductSizeModel.product, ProductModel.organization]
+            [ReviewModel.product, ProductModel.organization]
         ]
     )
 
@@ -595,7 +591,7 @@ async def update_review_status(review_id: int, session: AdminSessionModel = Depe
     if review.status != 2:
         raise HTTPException(status_code=400, detail=string_400)
 
-    level, purchases = await current_prices(review.size.product.organization)
+    level, purchases = await current_prices(review.product.organization)
 
     price = level.price_review
     target_id = 7
@@ -628,7 +624,7 @@ async def update_review_status(review_id: int, session: AdminSessionModel = Depe
                 'records': [
                     {
                         'amount': price,
-                        'org_id': review.size.product.organization.id,
+                        'org_id': review.product.organization.id,
                         'target_id': target_id,
                         'record_id': review.id,
                         'action_id': 3

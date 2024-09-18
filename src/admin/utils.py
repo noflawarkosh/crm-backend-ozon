@@ -65,10 +65,9 @@ async def process_reviews_tasks_xlsx(file):
     reviews = await Repository.get_records(
         ReviewModel,
         filters=[ReviewModel.id.in_([int(str(l['review_id']).replace(' ', '')) for l in xlsx_reviews])],
-        select_related=[ReviewModel.size],
+        select_related=[ReviewModel.product],
         deep_related=[
-            [ReviewModel.size, ProductSizeModel.product],
-            [ReviewModel.size, ProductSizeModel.product, ProductModel.organization],
+            [ReviewModel.product, ProductModel.organization]
         ]
     )
 
@@ -92,9 +91,9 @@ async def process_reviews_tasks_xlsx(file):
     # process reviews
     organizations_prices = {}
     for review in reviews_to_process:
-        if not organizations_prices.get(review[0].size.product.organization.id):
-            level, purchases = await current_prices(review[0].size.product.organization)
-            organizations_prices[review[0].size.product.organization.id] = level
+        if not organizations_prices.get(review[0].product.organization.id):
+            level, purchases = await current_prices(review[0].product.organization)
+            organizations_prices[review[0].product.organization.id] = level
 
     review_records = []
     balance_records = []
@@ -111,8 +110,8 @@ async def process_reviews_tasks_xlsx(file):
             )
 
             balance_records.append({
-                'amount': organizations_prices[review[0].size.product.organization.id].price_review,
-                'org_id': review[0].size.product.organization.id,
+                'amount': organizations_prices[review[0].product.organization.id].price_review,
+                'org_id': review[0].product.organization.id,
                 'target_id': 7,
                 'record_id': review[0].id,
                 'action_id': 3
