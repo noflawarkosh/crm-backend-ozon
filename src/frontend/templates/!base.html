@@ -73,10 +73,17 @@
 
             <ul class="menu-inner py-1" id="aside-menu">
 
-                <li class="menu-item active">
-                    <a href="/dashboard" class="menu-link">
-                        <i class="menu-icon tf-icons bx bxs-dashboard"></i>
-                        <div class="text-truncate" data-i18n="Главная">Главная</div>
+                <li class="menu-item" id="NVL-OZON">
+                    <a href="http://ozon.greedybear.ru/" class="menu-link" style="color: #005bff">
+                        <img src="{{ url_for('static', path='assets/img/icons/ozon.jpg') }}" class="menu-icon">
+                        <b><div class="text-truncate" data-i18n="Ozon"></div></b>
+                    </a>
+                </li>
+
+                <li class="menu-item" id="NVL-WB">
+                    <a href="http://greedybear.ru/" class="menu-link" style="color: #a73afd">
+                        <img src="{{ url_for('static', path='assets/img/icons/wb.png') }}" class="menu-icon">
+                        <b><div class="text-truncate" data-i18n="Wildberries"></div></b>
                     </a>
                 </li>
 
@@ -406,6 +413,14 @@
 
 <!-- Inputmasks -->
 <script>
+
+    var ORIGIN = window.location.origin
+    if (ORIGIN.includes('ozon')) {
+        document.getElementById('NVL-OZON').classList.add('active');
+    } else {
+        document.getElementById('NVL-WB').classList.add('active');
+    }
+
     $(document).ready(function () {
 
         innOptions = {
@@ -437,6 +452,8 @@
 
 <!-- Create Org -->
 <script>
+
+
     document.getElementById('create-org-form').addEventListener('submit', function (event) {
 
         event.preventDefault();

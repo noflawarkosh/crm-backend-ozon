@@ -166,6 +166,68 @@
                                 }
                             },
                             {
+                                "data": 'advs',
+                                "render": function (data, type, row) {
+                                    if (data) {
+
+                                        var style = 'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.2em; max-height: 3.6em;'
+
+                                        t_modals += '<div class="modal fade" id="textExpandA-' + row.id + '" aria-labelledby="textExpandLabelA-' + row.id + '" tabindex="-1" style="display: none;"\n' +
+                                            '         aria-hidden="true">\n' +
+                                            '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                            '            <div class="modal-content">\n' +
+                                            '                <div class="modal-header">\n' +
+                                            '                    <h5 class="modal-title" id="textExpandLabelA-' + row.id + '">' + 'Достоинства' + '</h5>\n' +
+                                            '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                            '                </div>\n' +
+                                            '                <div class="modal-body"><p>' + data + '</p></div></div>' +
+                                            '\n' +
+                                            '            </div>\n' +
+                                            '        </div>\n' +
+                                            '    </div>'
+
+
+                                        return '<span style="' + style + '">' + '<a href="##" data-bs-toggle="modal" data-bs-target="#textExpandA-' + row.id + '"><i class="bx bx-window" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                            '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                            '                           data-bs-original-title="Полный текст"></i></a> ' + data + '</span>'
+                                    }
+
+                                    return '—'
+                                },
+
+                            },
+                            {
+                                "data": 'disadvs',
+                                "render": function (data, type, row) {
+                                    if (data) {
+
+                                        var style = 'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.2em; max-height: 3.6em;'
+
+                                        t_modals += '<div class="modal fade" id="textExpandD-' + row.id + '" aria-labelledby="textExpandLabelD-' + row.id + '" tabindex="-1" style="display: none;"\n' +
+                                            '         aria-hidden="true">\n' +
+                                            '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                            '            <div class="modal-content">\n' +
+                                            '                <div class="modal-header">\n' +
+                                            '                    <h5 class="modal-title" id="textExpandLabelD-' + row.id + '">' + 'Недостатки' + '</h5>\n' +
+                                            '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                            '                </div>\n' +
+                                            '                <div class="modal-body"><p>' + data + '</p></div></div>' +
+                                            '\n' +
+                                            '            </div>\n' +
+                                            '        </div>\n' +
+                                            '    </div>'
+
+
+                                        return '<span style="' + style + '">' + '<a href="##" data-bs-toggle="modal" data-bs-target="#textExpandD-' + row.id + '"><i class="bx bx-window" data-bs-toggle="tooltip" data-bs-offset="0,8"\n' +
+                                            '                           data-bs-placement="top" data-bs-custom-class="tooltip-primary"\n' +
+                                            '                           data-bs-original-title="Полный текст"></i></a> ' + data + '</span>'
+                                    }
+
+                                    return '—'
+                                },
+
+                            },
+                            {
                                 "data": 'text',
                                 "render": function (data, type, row) {
                                     if (data) {
@@ -197,50 +259,13 @@
 
                             },
                             {
-                                "data": 'strict_match',
-                                "render": function (data, type, row) {
-                                    return data ? 'Да' : 'Нет'
-                                },
-
-                            },
-                            {
                                 "data": 'is_express',
                                 "render": function (data, type, row) {
                                     return data ? 'Да <i class="bx bxs-zap text-warning"></i>' : 'Нет'
                                 },
 
                             },
-                            {
-                                "data": 'product',
-                                "render": function (data, type, row) {
-                                    var cell = '—'
-                                    if (data != null) {
-                                        if (row.match === 0) {
-                                            cell = 'Не указывать'
-                                        }
-                                        if (row.match === 1) {
-                                            cell = 'Соответствует размеру'
-                                        }
-                                        if (row.match === 2) {
-                                            cell = 'Маломерит'
-                                        }
-                                        if (row.match === 3) {
-                                            cell = 'Большемерит'
-                                        }
-                                    }
-                                    return '<span class="text-nowrap">' + cell + '</span>'
-                                }
-                            },
-                            {
-                                "data": 'stars',
-                                "render": function (data, type, row) {
-                                    var cell = '—'
-                                    if (data != null) {
-                                        return '<span class="text-nowrap">' + data + '</span>'
-                                    }
-                                    return cell
-                                }
-                            },
+
                             {
                                 "data": 'media',
                                 "render": function (data, type, row) {
@@ -361,7 +386,7 @@
                                     }
 
 
-                                    return '<b><span class="text-' + color + '">' + text + ' ₽</span></b>'
+                                    return '<b><span class="text-nowrap">' + text + ' ₽</span></b>'
                                 }
                             },
                             {
@@ -468,31 +493,25 @@
                     rate = 1
                 }
 
-
                 // TEXT
                 const text = document.getElementById('rev-text');
                 var txt = text.value
 
+                // TEXT
+                const adv = document.getElementById('rev-advs');
+                var adv_t = adv.value
 
-                // MATCH
-                var ws = document.getElementById('match_flag')
-                var ws_r = !!ws.checked;
-                var ws2 = document.getElementById('is_express')
-                var ws_ex = !!ws2.checked;
-
-
-                var radioButtons = document.querySelectorAll('input[name="default-radio-1"]');
-                for (var i = 0; i < radioButtons.length; i++) {
-                    if (radioButtons[i].checked) {
-                        var mtchid = radioButtons[i].value;
-                        break;
-                    }
-                }
+                // TEXT
+                const dadv = document.getElementById('rev-disadvs');
+                var dadv_t = dadv.value
 
 
                 // SIZE
                 var sizeselect = document.getElementById('size_id')
                 var sizeid = sizeselect.options[sizeselect.selectedIndex].value
+
+                var ws2 = document.getElementById('is_express')
+                var ws_ex = !!ws2.checked;
 
 
                 // AJAX
@@ -500,14 +519,20 @@
                 const url = new URL('/reviews/create', currentDomain);
 
 
-                url.searchParams.append('match', mtchid);
-                url.searchParams.append('strict_match', ws_r);
                 url.searchParams.append('is_express', ws_ex);
                 url.searchParams.append('stars', rate);
 
 
                 if (txt != '') {
                     url.searchParams.append('text', txt);
+                }
+
+                if (adv_t != '') {
+                    url.searchParams.append('advs', adv_t);
+                }
+
+                if (dadv_t != '') {
+                    url.searchParams.append('disadvs', dadv_t);
                 }
 
                 url.searchParams.append('product_id', sizeid);
@@ -548,13 +573,10 @@
         var m_body = document.getElementById('modal_edit_review_body')
         var re_prod = document.getElementById('review_edit_product')
         var re_review_id = document.getElementById('re_review_id')
+        var re_advs = document.getElementById('edit_rev-advs')
+        var re_disadvs = document.getElementById('edit_rev-disadvs')
         var re_text = document.getElementById('edit_rev-text')
-        var re_m_flag = document.getElementById('edit_match_flag')
         var re_e_flag = document.getElementById('edit_is_express')
-        var re_esmr_1 = document.getElementById('esmr-1')
-        var re_esmr_2 = document.getElementById('esmr-2')
-        var re_esmr_3 = document.getElementById('esmr-3')
-        var re_esmr_4 = document.getElementById('esmr-4')
         var re_rnn = document.getElementById('rating_number')
 
         var re_stars1 = document.getElementById('Estars-1')
@@ -593,15 +615,11 @@
                         re_review_id.value = ''
                         re_prod.innerText = ''
                         re_text.value = ''
-                        re_m_flag.checked = false
+                        re_advs.value = ''
+                        re_disadvs.value = ''
                         re_e_flag.checked = false
-                        re_esmr_1.checked = false
-                        re_esmr_2.checked = false
-                        re_esmr_3.checked = false
-                        re_esmr_4.checked = false
                         re_stars5.checked = false
                         re_stars1.checked = false
-                        re_match_size_edit.style.display = 'none'
                         re_rnn.value = 5
 
                         // setting data values
@@ -628,17 +646,10 @@
                             '                        </div>'
 
                         re_text.value = data.text
+                        re_advs.value = data.advs
+                        re_disadvs.value = data.disadvs
 
-                        re_m_flag.checked = data.strict_match == true;
                         re_e_flag.checked = data.is_express == true;
-
-                        if (data.match !== null) {
-                            re_match_size_edit.style.display = 'block'
-                            re_esmr_1.checked = data.match === 0;
-                            re_esmr_2.checked = data.match === 1;
-                            re_esmr_3.checked = data.match === 2;
-                            re_esmr_4.checked = data.match === 3;
-                        }
 
                         re_rnn.value = data.stars
 
@@ -711,7 +722,6 @@
 
     }
 
-
     document.getElementById('review_add_media').addEventListener('submit', function (event) {
 
         event.preventDefault();
@@ -765,7 +775,6 @@
 
     });
 
-
     function delMedia(id, rid) {
         if (confirm('Удалить медиа?')) {
             $.ajax({
@@ -800,7 +809,6 @@
 
     }
 
-
     function saveReview() {
         var m_title = document.getElementById('modal_edit_review_title')
         var m_body = document.getElementById('modal_edit_review_body')
@@ -814,6 +822,9 @@
         var re_esmr_3 = document.getElementById('esmr-3')
         var re_esmr_4 = document.getElementById('esmr-4')
 
+        var re_advs = document.getElementById('edit_rev-advs')
+        var re_disadvs = document.getElementById('edit_rev-disadvs')
+
         var re_stars1 = document.getElementById('Estars-1')
         var re_stars5 = document.getElementById('Estars-5')
 
@@ -824,29 +835,11 @@
 
         re_sb.classList.add('disabled')
 
-        var XV = null;
         var XR = null;
 
-        var re_m_flag_v = !!re_m_flag.checked;
         var re_e_flag_v = !!re_e_flag.checked;
 
-        if (re_esmr_1.checked) {
-            XV = 0;
-        } else if (re_esmr_2.checked) {
-            XV = 1;
-        } else if (re_esmr_3.checked) {
-            XV = 2;
-        } else if (re_esmr_4.checked) {
-            XV = 3;
-        }
-
         XR = document.getElementById('rating_number').value
-
-        if (XV === null) {
-            toastr.error('Выберите соответствие')
-            re_sb.classList.remove('disabled')
-            return
-        }
 
         if (XR === null) {
             toastr.error('Выберите рейтинг')
@@ -855,7 +848,7 @@
         }
 
         $.ajax({
-            url: '/reviews/update?id=' + re_review_id.value + '&strict_match=' + re_m_flag_v + '&match=' + XV + '&text=' + re_text.value + '&is_express=' + re_e_flag_v + '&stars=' + XR,
+            url: '/reviews/update?id=' + re_review_id.value + '&text=' + re_text.value + '&advs=' + re_advs.value + '&disadvs=' + re_disadvs.value + '&is_express=' + re_e_flag_v + '&stars=' + XR,
             type: 'POST',
             success: function () {
                 toastr.success('Изменения сохранены')
@@ -949,11 +942,10 @@
                             <th>#ID</th>
                             <th>Товар</th>
                             <th>Размер</th>
-                            <th width="15%">Текст</th>
-                            <th>Строгий размер</th>
+                            <th width="10%">Достоинства</th>
+                            <th width="10%">Недостатки</th>
+                            <th width="10%">Комментарий</th>
                             <th>Срочный</th>
-                            <th>Соответствие</th>
-                            <th>Рейтинг</th>
                             <th>Медиа</th>
                             <th>Статус</th>
                             <th>Цена</th>
@@ -987,40 +979,24 @@
                     </select>
                 </div>
 
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" value="" id="match_flag">
-                    <label class="form-check-label" for="match_flag">
-                        Подобрать аккаунт под размер
-                    </label>
-                </div>
-
-                <div class="row mb-4" id="match_size">
+                <div class="mb-4 row">
+                    <label for="rev-advs" class="form-label">Достоинства</label>
                     <div class="col">
-                        <label class="form-label">Соответствие размеру</label>
-                        <div class="form-check ">
-                            <input name="default-radio-1" class="form-check-input" type="radio" value="0" id="smr-1"
-                                   checked="">
-                            <label class="form-check-label" for="smr-1">Не указывать</label>
-                        </div>
-                        <div class="form-check mt-1">
-                            <input name="default-radio-1" class="form-check-input" type="radio" value="1" id="smr-2">
-                            <label class="form-check-label" for="smr-2">Соответствует размеру</label>
-                        </div>
-                        <div class="form-check mt-1">
-                            <input name="default-radio-1" class="form-check-input" type="radio" value="2" id="smr-3">
-                            <label class="form-check-label" for="smr-3">Маломерит</label>
-                        </div>
-                        <div class="form-check mt-1">
-                            <input name="default-radio-1" class="form-check-input" type="radio" value="3" id="smr-4">
-                            <label class="form-check-label" for="smr-4">Большемерит</label>
-                        </div>
+                        <textarea class="form-control" id="rev-advs" rows="2"></textarea>
                     </div>
                 </div>
 
                 <div class="mb-4 row">
-                    <label for="rev-text" class="form-label">Текст отзыва</label>
+                    <label for="rev-disadvs" class="form-label">Недостатки</label>
                     <div class="col">
-                        <textarea class="form-control" id="rev-text" rows="3"></textarea>
+                        <textarea class="form-control" id="rev-disadvs" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="mb-4 row">
+                    <label for="rev-text" class="form-label">Комментарий к отзыву</label>
+                    <div class="col">
+                        <textarea class="form-control" id="rev-text" rows="2"></textarea>
                     </div>
                 </div>
 
@@ -1091,17 +1067,24 @@
                 </div>
 
                 <div class="mb-4 row">
-                    <label for="edit_rev-text" class="form-label">Текст отзыва</label>
+                    <label for="edit_rev-advs" class="form-label">Достоинства</label>
                     <div class="col">
-                        <textarea class="form-control" id="edit_rev-text" rows="3"></textarea>
+                        <textarea class="form-control" id="edit_rev-advs" rows="2"></textarea>
                     </div>
                 </div>
 
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" value="" id="edit_match_flag">
-                    <label class="form-check-label" for="edit_match_flag">
-                        Подобрать аккаунт под размер
-                    </label>
+                <div class="mb-4 row">
+                    <label for="edit_rev-disadvs" class="form-label">Недостатки</label>
+                    <div class="col">
+                        <textarea class="form-control" id="edit_rev-disadvs" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="mb-4 row">
+                    <label for="edit_rev-text" class="form-label">Комментарий</label>
+                    <div class="col">
+                        <textarea class="form-control" id="edit_rev-text" rows="2"></textarea>
+                    </div>
                 </div>
 
                 <div class="form-check mb-3">
@@ -1111,30 +1094,8 @@
                     </label>
                 </div>
 
-
-                <div class="row mb-4" style="display: none" id="match_size_edit">
-                    <div class="col">
-                        <label class="form-label">Соответствие размеру</label>
-                        <div class="form-check ">
-                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="0" id="esmr-1"
-                                   checked="">
-                            <label class="form-check-label" for="esmr-1">Не указывать</label>
-                        </div>
-                        <div class="form-check mt-1">
-                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="1" id="esmr-2">
-                            <label class="form-check-label" for="esmr-2">Соответствует размеру</label>
-                        </div>
-                        <div class="form-check mt-1">
-                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="2" id="esmr-3">
-                            <label class="form-check-label" for="esmr-3">Маломерит</label>
-                        </div>
-                        <div class="form-check mt-1">
-                            <input name="Edefault-radio-1" class="form-check-input" type="radio" value="3" id="esmr-4">
-                            <label class="form-check-label" for="esmr-4">Большемерит</label>
-                        </div>
-                    </div>
-                </div>
                 <input type="hidden" id="rating_number" value="5">
+
                 <div class="row mb-4" id="Erating" style="display: none">
                     <div class="col">
                         <label class="form-label">Рейтинг</label>

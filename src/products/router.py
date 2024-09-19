@@ -185,9 +185,6 @@ async def create_review(data: Annotated[ReviewCreateSchema, Depends()], files: L
     if not product.barcode:
         raise HTTPException(status_code=403, detail=string_product_size_no_barcode)
 
-    if data.match not in [None, 0, 1, 2, 3]:
-        raise HTTPException(status_code=404, detail=string_404)
-
     if files[0].size != 0 or files[0].filename != '':
         for file in files:
             try:

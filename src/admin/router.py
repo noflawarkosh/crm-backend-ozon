@@ -396,7 +396,6 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
             ReviewModel,
             filters=[
                 ReviewModel.status == 1,
-                ReviewModel.strict_match.is_(False),
                 ReviewModel.is_express.is_(False),
                 ReviewModel.stars == 5
             ],
@@ -422,7 +421,6 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
             ReviewModel,
             filters=[
                 ReviewModel.status == 1,
-                ReviewModel.strict_match.is_(False),
                 ReviewModel.is_express.is_(False),
                 ReviewModel.stars == 1
             ],
@@ -449,44 +447,42 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
     if len(reviews) == 0:
         raise HTTPException(status_code=415, detail=string_404)
 
-    matches_ids = {
-        0: '',
-        1: 'Соответствует размеру',
-        2: 'Маломерит',
-        3: 'Большемерит'
-    }
-
     tasks = {}
+    revs_to_update = reviews
     for review in reviews:
         if tasks.get(review.product.ozon_article):
             tasks[review.product.ozon_article].append(review)
         else:
             tasks[review.product.ozon_article] = [review]
 
+
+
     zip_file = BytesIO()
     with ZipFile(zip_file, 'w') as zip_archive:
         for article, reviews in tasks.items():
             excel_file = BytesIO()
             texts = []
-            matches = []
+            advs = []
+            disadvs = []
             ids = []
 
             for review in reviews:
-                texts.append(review.text if review.text else 'Без текста')
-                matches.append(matches_ids[review.match])
+                texts.append(review.text if review.text else '')
+                advs.append(review.advs if review.text else '')
+                disadvs.append(review.disadvs if review.text else '')
                 ids.append(review.id)
 
             data = {
-                "Отзыв": texts,
+                "Достоинства": texts,
+                "Недостатки": advs,
+                "Комментарий к отзыву": disadvs,
                 "Пол": [''] * len(texts),
                 "Размер": [''] * len(texts),
-                "Фото 1": [''] * len(texts),
-                "Фото 2": [''] * len(texts),
-                "Фото 3": [''] * len(texts),
-                "Фото 4": [''] * len(texts),
-                "Фото 5": [''] * len(texts),
+                "Фото": [''] * len(texts),
+                "": [''] * len(texts),
+                " ": [''] * len(texts),
                 "Видео": [''] * len(texts),
-                "Соответствие размеру": matches,
+                "Соответствие размеру": [''] * len(texts),
                 "Аккаунт": [''] * len(texts),
                 "Статус": [''] * len(texts),
                 "Результат": [''] * len(texts),
@@ -508,7 +504,7 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
         [
             {
                 'model': ReviewModel,
-                'records': [{'id': review.id, 'status': 2} for review in reviews]
+                'records': [{'id': review.id, 'status': 2} for review in revs_to_update]
             }
         ]
     )
@@ -599,10 +595,6 @@ async def update_review_status(review_id: int, session: AdminSessionModel = Depe
     if review.media:
         price = level.price_review_media
         target_id = 5
-
-    if review.strict_match is True:
-        price = level.price_review_request
-        target_id = 6
 
     if review.is_express is True:
         price = level.price_review_request

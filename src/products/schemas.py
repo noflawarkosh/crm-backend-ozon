@@ -55,10 +55,10 @@ class ReviewMediaReadSchema(BaseModel):
 
 
 class ReviewCreateSchema(BaseModel):
+    advs: Optional[str] = None
+    disadvs: Optional[str] = None
     text: Optional[str] = None
     product_id: Optional[int] = None
-    match: Optional[int]
-    strict_match: bool
     is_express: bool = False
     stars: int
 
@@ -66,21 +66,17 @@ class ReviewCreateSchema(BaseModel):
 class ReviewUpdateSchema(BaseModel):
     id: int
     text: Optional[str] = None
-    match: Optional[int]
-    strict_match: bool
+    advs: Optional[str] = None
+    disadvs: Optional[str] = None
     is_express: bool
     stars: int
 
 
 class ReviewReadSchema(ReviewCreateSchema):
     id: int
-    text: str | None
-    match: int | None
     status: int
     description: Optional[str] = None
-    strict_match: bool
     is_express: bool
-    stars: int
 
     media: Optional[list[ReviewMediaReadSchema]] = None
     product: Optional[ProductReadSchema]

@@ -14,9 +14,9 @@ from strings import *
 async def process_reviews_xlsx(file, org_id, stars):
     excel_columns = {
         'ozon_article': 0,
-        'text': 1,
-        'strict_match': 2,
-        'match': 3
+        'advs': 1,
+        'disadvs': 2,
+        'text': 3,
     }
 
     xlsx_reviews_content = await file.read()
@@ -63,39 +63,13 @@ async def process_reviews_xlsx(file, org_id, stars):
         if not selected_product:
             raise Exception(f"Строка {line['line_number']}: товар не найден в разделе Товары")
 
-        # Strict match check
-        if line['strict_match'] is None:
-            raise Exception(f"Строка {line['line_number']}: не указана необходимость в выборе аккаунта")
-
-        try:
-            int(str(line['strict_match']).replace(' ', ''))
-        except:
-            raise Exception(f"Строка {line['line_number']}: необходимость в выборе аккаунта должна быть целым числом")
-
-        strict_match = int(str(line['strict_match']).replace(' ', ''))
-        if strict_match not in [0, 1]:
-            raise Exception(f"Строка {line['line_number']}: необходимость в выборе аккаунта должна быть 0 или 1")
-
-        # Match check
-        if line['match'] is None:
-            raise Exception(f"Строка {line['line_number']}: не указано соответствие размеру")
-
-        try:
-            int(str(line['match']).replace(' ', ''))
-        except:
-            raise Exception(f"Строка {line['line_number']}: соответствие размеру должно быть целым числом")
-
-        match = int(str(line['match']).replace(' ', ''))
-        if match not in [0, 1, 2, 3]:
-            raise Exception(f"Строка {line['line_number']}: соответствие размеру должно быть 0, 1, 2 или 3")
-
         records_to_insert.append(
             {
                 'product_id': selected_product.id,
                 'status': 1,
                 'text': line['text'],
-                'strict_match': strict_match,
-                'match': match,
+                'advs': line['advs'],
+                'disadvs': line['disadvs'],
                 'stars': stars
             }
         )

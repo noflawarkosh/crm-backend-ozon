@@ -78,7 +78,7 @@
                         }
                     },
                     {
-                        "data": 'text',
+                        "data": 'advs',
                         "render": function (data, type, row) {
                             if (data) {
 
@@ -89,7 +89,7 @@
                                     '        <div class="modal-dialog modal-dialog-centered">\n' +
                                     '            <div class="modal-content">\n' +
                                     '                <div class="modal-header">\n' +
-                                    '                    <h5 class="modal-title" id="textExpandLabel-' + row.id + '">' + 'Текст отзыва' + '</h5>\n' +
+                                    '                    <h5 class="modal-title" id="textExpandLabel-' + row.id + '">' + 'Достоинства' + '</h5>\n' +
                                     '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
                                     '                </div>\n' +
                                     '                <div class="modal-body"><p>' + data + '</p></div></div>' +
@@ -107,9 +107,60 @@
 
                     },
                     {
-                        "data": 'strict_match',
+                        "data": 'disadvs',
                         "render": function (data, type, row) {
-                            return data ? 'Да' : 'Нет'
+                            if (data) {
+
+                                var style = 'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.2em; max-height: 3.6em;'
+
+                                t_modals += '<div class="modal fade" id="textExpand-' + row.id + '" aria-labelledby="textExpandLabel-' + row.id + '" tabindex="-1" style="display: none;"\n' +
+                                    '         aria-hidden="true">\n' +
+                                    '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                    '            <div class="modal-content">\n' +
+                                    '                <div class="modal-header">\n' +
+                                    '                    <h5 class="modal-title" id="textExpandLabel-' + row.id + '">' + 'Недостатки' + '</h5>\n' +
+                                    '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                    '                </div>\n' +
+                                    '                <div class="modal-body"><p>' + data + '</p></div></div>' +
+                                    '\n' +
+                                    '            </div>\n' +
+                                    '        </div>\n' +
+                                    '    </div>'
+
+
+                                return '<span style="' + style + '">' + '<a href="##" data-bs-toggle="modal" data-bs-target="#textExpand-' + row.id + '"><i class="bx bx-window"></i></a> ' + data + '</span>'
+                            }
+
+                            return '—'
+                        },
+
+                    },
+                    {
+                        "data": 'text',
+                        "render": function (data, type, row) {
+                            if (data) {
+
+                                var style = 'display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.2em; max-height: 3.6em;'
+
+                                t_modals += '<div class="modal fade" id="textExpand-' + row.id + '" aria-labelledby="textExpandLabel-' + row.id + '" tabindex="-1" style="display: none;"\n' +
+                                    '         aria-hidden="true">\n' +
+                                    '        <div class="modal-dialog modal-dialog-centered">\n' +
+                                    '            <div class="modal-content">\n' +
+                                    '                <div class="modal-header">\n' +
+                                    '                    <h5 class="modal-title" id="textExpandLabel-' + row.id + '">' + 'Комментарий' + '</h5>\n' +
+                                    '                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\n' +
+                                    '                </div>\n' +
+                                    '                <div class="modal-body"><p>' + data + '</p></div></div>' +
+                                    '\n' +
+                                    '            </div>\n' +
+                                    '        </div>\n' +
+                                    '    </div>'
+
+
+                                return '<span style="' + style + '">' + '<a href="##" data-bs-toggle="modal" data-bs-target="#textExpand-' + row.id + '"><i class="bx bx-window"></i></a> ' + data + '</span>'
+                            }
+
+                            return '—'
                         },
 
                     },
@@ -120,27 +171,7 @@
                         },
 
                     },
-                    {
-                        "data": 'size',
-                        "render": function (data, type, row) {
-                            var cell = '—'
-                            if (data != null) {
-                                if (row.match === 0) {
-                                    cell = 'Не указывать'
-                                }
-                                if (row.match === 1) {
-                                    cell = 'Соответствует размеру'
-                                }
-                                if (row.match === 2) {
-                                    cell = 'Маломерит'
-                                }
-                                if (row.match === 3) {
-                                    cell = 'Большемерит'
-                                }
-                            }
-                            return '<span class="text-nowrap">' + cell + '</span>'
-                        }
-                    },
+
                     {
                         "data": 'stars',
                         "render": function (data, type, row) {
@@ -275,7 +306,7 @@
                     var newRow = $('<tr></tr>');
                     $(table).append(newRow);
 
-                    var searchColumns = [0, 1, 2, 3, 4, 5, 6, 8];
+                    var searchColumns = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, ];
 
                     this.api().columns().every(function (i) {
                         var column = this;
@@ -367,7 +398,7 @@
             },
             error: function (xhr, status, error) {
 
-                if (xhr.status === 415  ) {
+                if (xhr.status === 415) {
                     toastr.info('Задач нет');
                 } else {
                     toastr.info('Ошибка выполнения операции');
@@ -469,10 +500,11 @@
                                 <th>Организация</th>
                                 <th>Товар</th>
                                 <th>Размер</th>
-                                <th>Текст</th>
-                                <th>Строгий размер</th>
+                                <th>Достоинства</th>
+                                <th>Недостатки</th>
+                                <th>Комментарий</th>
                                 <th>Срочный</th>
-                                <th>Соответствие</th>
+
                                 <th>Рейтинг</th>
                                 <th>Медиа</th>
                                 <th>Статус</th>

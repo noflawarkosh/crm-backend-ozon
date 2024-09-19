@@ -38,9 +38,9 @@ class ReviewModel(Base):
     __tablename__ = 'products_review'
 
     id: Mapped[pk]
+    advs: Mapped[str | None]
+    disadvs: Mapped[str | None]
     text: Mapped[str | None]
-    strict_match: Mapped[bool]
-    match: Mapped[int | None]
     status: Mapped[int]
     description: Mapped[str | None]
     stars: Mapped[int]
