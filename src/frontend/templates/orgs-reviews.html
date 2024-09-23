@@ -52,7 +52,7 @@
 
                 var optionText = product.ozon_article
                 var optionValue = product.id
-                var optionDataSubtext = prod_title
+                var optionDataSubtext = truncStr(prod_title, 30)
 
                 var option = $('<option>').text(optionText).attr('data-subtext', optionDataSubtext).val(optionValue);
                 selectElement.append(option);

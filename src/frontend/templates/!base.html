@@ -76,14 +76,18 @@
                 <li class="menu-item" id="NVL-OZON">
                     <a href="http://ozon.greedybear.ru/" class="menu-link" style="color: #005bff">
                         <img src="{{ url_for('static', path='assets/img/icons/ozon.jpg') }}" class="menu-icon">
-                        <b><div class="text-truncate" data-i18n="Ozon"></div></b>
+                        <b>
+                            <div class="text-truncate" data-i18n="Ozon"></div>
+                        </b>
                     </a>
                 </li>
 
                 <li class="menu-item" id="NVL-WB">
                     <a href="http://greedybear.ru/" class="menu-link" style="color: #a73afd">
                         <img src="{{ url_for('static', path='assets/img/icons/wb.png') }}" class="menu-icon">
-                        <b><div class="text-truncate" data-i18n="Wildberries"></div></b>
+                        <b>
+                            <div class="text-truncate" data-i18n="Wildberries"></div>
+                        </b>
                     </a>
                 </li>
 
@@ -413,6 +417,13 @@
 
 <!-- Inputmasks -->
 <script>
+
+    function truncStr(str, length) {
+        if (str.length > length) {
+            return str.slice(0, length) + '...';
+        }
+        return str;
+    }
 
     var ORIGIN = window.location.origin
     if (ORIGIN.includes('ozon')) {
@@ -926,7 +937,7 @@
                         },
 
                         error: function () {
-                            
+
                             var info = '<span class="badge bg-label-primary me-2">' + data.title + '</span>'
 
                             if (data.is_competitor) {

@@ -1,5 +1,10 @@
 FROM python:3.10
 
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    ln -fs /usr/share/zoneinfo/Europe/Moscow /etc/localtime && \
+    dpkg-reconfigure -f noninteractive tzdata
+
 RUN mkdir /crm
 
 WORKDIR /crm

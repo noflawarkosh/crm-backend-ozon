@@ -278,7 +278,7 @@
         const wb_url = document.getElementById('wb_url');
 
         if (wb_url.value.length === 0) {
-            toastr.error('Введите ссылку на товар')
+            toastr.error('Введите артикул товара')
             submitButton.disabled = false
             return
         }
@@ -370,10 +370,10 @@
             <form id="create-product-form">
 
                 <div class="mb-4 row">
-                    <label for="wb_url" class="form-label">Ссылка на товар </label>
+                    <label for="wb_url" class="form-label">Артикул товара</label>
                     <div class="col">
                         <input class="form-control" type="text"
-                               placeholder="https://www.ozon.ru/product/"
+                               placeholder="0000000000"
                                id="wb_url">
                     </div>
                 </div>
