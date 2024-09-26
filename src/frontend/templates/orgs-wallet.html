@@ -272,10 +272,14 @@
         var freeze = 0
         var spent = 0
         var unfreezed = 0
-
+        var sp2 = 0
         for (var i in x) {
             if (x[i].action_id === 1) {
                 add = add + x[i].amount
+                if (x[i].record_id != null) {
+                    sp2 = sp2 - x[i].amount
+                }
+
             }
             if (x[i].action_id === 2) {
                 freeze = freeze + x[i].amount
@@ -291,7 +295,7 @@
         return {
             'add': add,
             'freeze': freeze,
-            'spent': spent,
+            'spent': spent + sp2,
             'unfreezed': unfreezed,
             'total': add + unfreezed - freeze - spent
         }
@@ -413,6 +417,11 @@
 
                     if (data[key][i].action_id === 4) {
                         total_2 += data[key][i].amount
+
+                        if (data[key][i].record_id == null) {
+                            other_2 += data[key][i].amount
+                        }
+
 
                         if (data[key][i].target_id === 1) {
                             prods_2 += data[key][i].amount
