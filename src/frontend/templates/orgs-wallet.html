@@ -362,9 +362,28 @@
                 var total_1 = 0
                 var total_2 = 0
 
+                var other_1 = 0
+                var other_2 = 0
+
                 for (var i in data[key]) {
+
+
+                    if (data[key][i].action_id === 1) {
+
+                        if (data[key][i].target_id === 2 || data[key][i].target_id === 3 || data[key][i].target_id === 4) {
+                            total_1 += data[key][i].amount
+                            servs_1 += data[key][i].amount
+                        }
+
+                    }
+
                     if (data[key][i].action_id === 3) {
+
                         total_1 -= data[key][i].amount
+
+                        if (data[key][i].record_id == null) {
+                            other_1 -= data[key][i].amount
+                        }
 
                         if (data[key][i].target_id === 1) {
                             prods_1 -= data[key][i].amount
@@ -378,6 +397,10 @@
 
                     if (data[key][i].action_id === 2) {
                         total_2 -= data[key][i].amount
+
+                        if (data[key][i].record_id == null) {
+                            other_2 -= data[key][i].amount
+                        }
 
                         if (data[key][i].target_id === 1) {
                             prods_2 -= data[key][i].amount
@@ -409,7 +432,9 @@
                     'servs1': servs_1,
                     'servs2': servs_2,
                     'total1': total_1,
-                    'total2': total_2
+                    'total2': total_2,
+                    'other1': other_1,
+                    'other2': other_2
                 })
             }
 
@@ -444,6 +469,13 @@
 
 
                             return '<b class="text-nowrap text-danger">' + row.servs1.toLocaleString('ru-RU') + ' ₽</b>' + '<b> / </b>' + '<b class="text-nowrap text-info">' + row.servs2.toLocaleString('ru-RU') + ' ₽</b>'
+                        }
+                    },
+                    {
+                        data: 'amount',
+                        "render": function (data, type, row) {
+
+                            return '<b class="text-nowrap text-danger">' + row.other1.toLocaleString('ru-RU') + ' ₽</b>' + '<b> / </b>' + '<b class="text-nowrap text-info">' + row.other2.toLocaleString('ru-RU') + ' ₽</b>'
                         }
                     },
                     {
@@ -549,6 +581,7 @@
                             <th>Дата</th>
                             <th>Расходы на товары</th>
                             <th>Расходы на услуги</th>
+                            <th>Прочие расходы</th>
                             <th>Общие расходы</th>
                             <th>Действия</th>
                         </tr>
