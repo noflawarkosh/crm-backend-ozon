@@ -473,9 +473,9 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
                 ids.append(review.id)
 
             data = {
-                "Достоинства": texts,
-                "Недостатки": advs,
-                "Комментарий к отзыву": disadvs,
+                "Достоинства": advs,
+                "Недостатки": disadvs,
+                "Комментарий к отзыву": texts,
                 "Пол": [''] * len(texts),
                 "Размер": [''] * len(texts),
                 "Фото": [''] * len(texts),

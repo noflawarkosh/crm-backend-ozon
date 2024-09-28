@@ -207,6 +207,7 @@
             document.getElementById('dt_logs_payments_div').innerHTML = '<table id="dt_logs_payments" class="datatables-ajax table table-bordered dataTable no-footer">\n' +
                 '                        <thead>\n' +
                 '                        <tr>\n' +
+                 '                            <th>SID</th>\n' +
                 '                            <th>UUID</th>\n' +
                 '                            <th>Статус</th>\n' +
                 '                            <th>Описание</th>\n' +
@@ -359,6 +360,12 @@
                         "ordering": true,
                         autoWidth: false,
                         "columns": [
+                            {
+                                data: 'sid',
+                                render: function (data, type, row) {
+                                    return '<b>' + data + '</b>'
+                                }
+                            },
                             {
                                 data: 'target',
                                 render: function (data, type, row) {

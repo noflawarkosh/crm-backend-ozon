@@ -1109,7 +1109,7 @@ async def generate_plan_main(servers, bad_accounts, date):
     db_orders = await Repository.get_records(
         OrdersOrderModel,
         filters=[OrdersOrderModel.dt_ordered.isnot(None)],
-        select_related=[OrdersOrderModel.product],
+        select_related=[OrdersOrderModel.product, OrdersOrderModel.account],
         deep_related=[
             [OrdersOrderModel.product, ProductModel.organization]
         ],
