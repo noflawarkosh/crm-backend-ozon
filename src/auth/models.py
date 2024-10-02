@@ -33,9 +33,7 @@ class UserSessionModel(Base):
     useragent: Mapped[str]
     ip: Mapped[str]
     created: Mapped[dt]
-    expires: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.now() + datetime.timedelta(days=3)
-    )
+    expires: Mapped[datetime.datetime]
 
     # FK
     user_id: Mapped[int] = mapped_column(
