@@ -468,8 +468,8 @@ async def download_xlsx_reviews(type: int, session: AdminSessionModel = Depends(
 
             for review in reviews:
                 texts.append(review.text if review.text else '')
-                advs.append(review.advs if review.text else '')
-                disadvs.append(review.disadvs if review.text else '')
+                advs.append(review.advs if review.advs else '')
+                disadvs.append(review.disadvs if review.disadvs else '')
                 ids.append(review.id)
 
             data = {
